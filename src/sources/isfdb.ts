@@ -91,6 +91,66 @@ async function searchSeries(seriesName: string): Promise<{ id: string; name: str
 }
 
 /**
+ * Search for multiple series matching a keyword
+ * Returns all series from search results
+ */
+export async function searchSeriesKeyword(keyword: string, maxResults = 100): Promise<Array<{ id: string; name: string }>> {
+  await rateLimit();
+  
+  const query = encodeURIComponent(keyword);
+  const url = `${BASE_URL}/cgi-bin/se.cgi?arg=${query}&type=Series`;
+  
+  console.log(`[ISFDB] Searching series with keyword: ${keyword}`);
+  
+  const response = await fetch(url, {
+    headers: {
+      'User-Agent': 'NachoSeries/0.1.0 (Series Indexer)',
+    },
+  });
+  
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+  
+  const html = await response.text();
+  const $ = cheerio.load(html);
+  
+  const results: Array<{ id: string; name: string }> = [];
+  
+  // Check if we got a direct series page (single result)
+  const pageTitle = $('title').text();
+  if (pageTitle.startsWith('Series:')) {
+    const editLink = $('a[href*="editseries.cgi"]').attr('href');
+    if (editLink) {
+      const match = editLink.match(/editseries\.cgi\?(\d+)/);
+      if (match) {
+        const seriesNameFromPage = $('h2').text().replace('Series: ', '').trim();
+        results.push({ id: match[1], name: seriesNameFromPage });
+      }
+    }
+    return results;
+  }
+  
+  // Multiple results - collect all series links
+  $('a[href*="pe.cgi"]').each((_, el) => {
+    if (results.length >= maxResults) return;
+    
+    const href = $(el).attr('href');
+    const name = $(el).text().trim();
+    const match = href?.match(/pe\.cgi\?(\d+)/);
+    if (match && name) {
+      // Avoid duplicates
+      if (!results.find(r => r.id === match[1])) {
+        results.push({ id: match[1], name });
+      }
+    }
+  });
+  
+  console.log(`[ISFDB] Found ${results.length} series for keyword: ${keyword}`);
+  return results;
+}
+
+/**
  * Fetch series details from ISFDB series page
  */
 async function fetchSeriesPage(seriesId: string): Promise<SourceSeries | null> {
@@ -122,23 +182,11 @@ async function fetchSeriesPage(seriesId: string): Promise<SourceSeries | null> {
   let author: string | undefined;
   
   // Parse books from the series listing
-  // ISFDB structure:
-  // <div id="content">
-  //   <div class="ContentBox">
-  //     <ul><li> <a href="pe.cgi?ID">SeriesName</a>
-  //       <ul>
-  //         <li>1 <a class="italic" href="title.cgi?ID">Book Title</a> (<b>YEAR</b>) <b>by</b> <a href="ea.cgi?ID">Author</a>
-  //       </ul>
-  //     </ul>
-  //   </div>
-  // </div>
-  
   const books: SourceBook[] = [];
   
   // Get the content area - books are in nested lists within ContentBox divs
   const contentBoxes = $('#content .ContentBox');
   
-  // The second ContentBox contains the series listing (first has metadata)
   contentBoxes.each((boxIndex, box) => {
     const $box = $(box);
     
@@ -185,11 +233,9 @@ async function fetchSeriesPage(seriesId: string): Promise<SourceSeries | null> {
         }
       }
       
-      // Skip subseries entries (their titles link to pe.cgi not title.cgi)
-      // And skip short fiction marked with [SF]
+      // Skip short fiction marked with [SF]
       const typeMarker = $li.text();
       if (typeMarker.includes('[SF]')) {
-        // This is short fiction, skip it for main series count
         return;
       }
       
@@ -228,6 +274,39 @@ async function fetchSeriesPage(seriesId: string): Promise<SourceSeries | null> {
     books: uniqueBooks,
     sourceId: seriesId,
   };
+}
+
+/**
+ * Fetch series by ID directly
+ */
+export async function fetchSeriesById(seriesId: string): Promise<SourceResult> {
+  try {
+    const series = await fetchSeriesPage(seriesId);
+    
+    if (!series) {
+      return {
+        source: 'isfdb',
+        series: null,
+        raw: { seriesId },
+        error: 'Failed to parse series page',
+      };
+    }
+    
+    return {
+      source: 'isfdb',
+      series,
+      raw: { seriesId },
+    };
+    
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return {
+      source: 'isfdb',
+      series: null,
+      raw: null,
+      error: message,
+    };
+  }
 }
 
 /**
@@ -282,12 +361,38 @@ export async function fetchSeries(seriesName: string): Promise<SourceResult> {
 }
 
 /**
- * Browse series by genre/category
- * ISFDB has category pages we can crawl
+ * Genre search keywords for crawling
+ * These map our genres to ISFDB search terms
  */
-export async function browseSeries(genre: string): Promise<string[]> {
-  // TODO: Implement genre browsing
-  // ISFDB has pages like: https://www.isfdb.org/cgi-bin/sebytagmenu.cgi?tag_name=litrpg
-  console.log(`[ISFDB] Genre browsing not yet implemented for: ${genre}`);
-  return [];
+export const genreKeywords: Record<string, string[]> = {
+  'litrpg': ['litrpg', 'gamelit', 'dungeon core', 'cultivation'],
+  'fantasy': ['epic fantasy series', 'high fantasy', 'urban fantasy series', 'sword and sorcery'],
+  'science-fiction': ['space opera', 'hard science fiction', 'military sf series', 'cyberpunk'],
+  'post-apocalyptic': ['post-apocalyptic', 'apocalyptic', 'dystopian series'],
+};
+
+/**
+ * Browse series by genre using keyword searches
+ */
+export async function browseSeriesByGenre(genre: string): Promise<Array<{ id: string; name: string }>> {
+  const keywords = genreKeywords[genre] || [genre];
+  const allSeries: Array<{ id: string; name: string }> = [];
+  const seenIds = new Set<string>();
+  
+  for (const keyword of keywords) {
+    const results = await searchSeriesKeyword(keyword, 50);
+    
+    for (const series of results) {
+      if (!seenIds.has(series.id)) {
+        seenIds.add(series.id);
+        allSeries.push(series);
+      }
+    }
+    
+    // Be nice to ISFDB
+    await rateLimit();
+  }
+  
+  console.log(`[ISFDB] Total unique series for genre "${genre}": ${allSeries.length}`);
+  return allSeries;
 }

@@ -3,10 +3,10 @@
  * Aggregates and reconciles book series data from multiple sources
  */
 
-import { initDatabase, getStats, closeDatabase } from './database/db.js';
+import { initDatabase, getStats, closeDatabase, upsertSeries, upsertSeriesBook, findSeriesByName, getSeriesNeedingVerification, storeSourceData } from './database/db.js';
 import { fetchSeries as fetchLibraryThing } from './sources/librarything.js';
 import { fetchSeries as fetchOpenLibrary } from './sources/openLibrary.js';
-import { fetchSeries as fetchISFDB } from './sources/isfdb.js';
+import { fetchSeries as fetchISFDB, browseSeriesByGenre, fetchSeriesById, genreKeywords } from './sources/isfdb.js';
 import { checkFlareSolverr } from './sources/flareSolverr.js';
 import { compareSources, needsTalpaVerification } from './reconciler/matcher.js';
 import { config } from './config.js';
@@ -35,11 +35,15 @@ async function main() {
       break;
       
     case 'crawl':
-      await runCrawl(args[1]);
+      await runCrawl(args[1], args.includes('--save'));
       break;
       
     case 'verify':
       await runVerify();
+      break;
+      
+    case 'save':
+      await saveSeriesFromTest(args[1]);
       break;
       
     default:
@@ -48,8 +52,11 @@ async function main() {
       console.log('Commands:');
       console.log('  status           Show database statistics');
       console.log('  test [series]    Test fetch a specific series');
-      console.log('  crawl [genre]    Crawl series for a genre');
+      console.log('  crawl [genre]    Crawl series for a genre (--save to persist)');
+      console.log('  save [series]    Fetch and save a specific series');
       console.log('  verify           Verify existing series data');
+      console.log('');
+      console.log('Genres: ' + Object.keys(genreKeywords).join(', '));
       break;
   }
   
@@ -201,17 +208,224 @@ async function runTestFetch(seriesName?: string) {
   }
 }
 
-async function runCrawl(genre?: string) {
+async function runCrawl(genre?: string, saveToDb = false) {
   const targetGenre = genre || config.genres[0];
+  
   console.log(`🔄 Crawling genre: ${targetGenre}`);
+  console.log(`📁 Save to database: ${saveToDb ? 'Yes' : 'No (dry run)'}`);
   console.log('─'.repeat(50));
-  console.log('Not yet implemented - coming soon!');
+  
+  // Check if genre is valid
+  if (!genreKeywords[targetGenre]) {
+    console.log(`❌ Unknown genre: ${targetGenre}`);
+    console.log(`   Available: ${Object.keys(genreKeywords).join(', ')}`);
+    return;
+  }
+  
+  // Discover series for the genre
+  console.log(`\n🔍 Discovering series for "${targetGenre}"...`);
+  const seriesList = await browseSeriesByGenre(targetGenre);
+  
+  console.log(`\n📊 Found ${seriesList.length} series to process`);
+  console.log('─'.repeat(50));
+  
+  let saved = 0;
+  let skipped = 0;
+  let errors = 0;
+  
+  for (let i = 0; i < seriesList.length; i++) {
+    const seriesRef = seriesList[i];
+    const progress = `[${i + 1}/${seriesList.length}]`;
+    
+    // Check if already in database
+    const existing = findSeriesByName(seriesRef.name);
+    if (existing) {
+      console.log(`${progress} ⏭️  ${seriesRef.name} (already exists)`);
+      skipped++;
+      continue;
+    }
+    
+    // Fetch full series data
+    console.log(`${progress} 📥 Fetching: ${seriesRef.name}`);
+    const result = await fetchSeriesById(seriesRef.id);
+    
+    if (result.error || !result.series) {
+      console.log(`${progress} ❌ Error: ${result.error || 'No data'}`);
+      errors++;
+      continue;
+    }
+    
+    const series = result.series;
+    
+    // Skip series with no books or too few books
+    if (series.books.length < 2) {
+      console.log(`${progress} ⏭️  ${series.name} (only ${series.books.length} book)`);
+      skipped++;
+      continue;
+    }
+    
+    // Calculate year range
+    const years = series.books.map(b => b.yearPublished).filter((y): y is number => y !== undefined);
+    const yearStart = years.length > 0 ? Math.min(...years) : undefined;
+    const yearEnd = years.length > 0 ? Math.max(...years) : undefined;
+    
+    console.log(`${progress} ✅ ${series.name} - ${series.books.length} books by ${series.author || 'Unknown'}`);
+    
+    if (saveToDb) {
+      // Save to database
+      const seriesId = upsertSeries({
+        name: series.name,
+        author: series.author,
+        genre: targetGenre,
+        total_books: series.books.length,
+        year_start: yearStart,
+        year_end: yearEnd,
+        confidence: 0.8,  // ISFDB is generally reliable
+        isfdb_id: series.sourceId,
+      });
+      
+      // Save each book
+      for (const book of series.books) {
+        upsertSeriesBook({
+          series_id: seriesId,
+          title: book.title,
+          position: book.position,
+          author: book.author,
+          year_published: book.yearPublished,
+          confidence: 0.8,
+        });
+      }
+      
+      // Store raw source data
+      storeSourceData(seriesId, 'isfdb', result.raw, series.books.length);
+      
+      saved++;
+    } else {
+      saved++;  // Count as "would be saved" in dry run
+    }
+  }
+  
+  console.log('');
+  console.log('─'.repeat(50));
+  console.log('📊 Crawl Summary:');
+  console.log(`  Genre: ${targetGenre}`);
+  console.log(`  Processed: ${seriesList.length} series`);
+  console.log(`  ${saveToDb ? 'Saved' : 'Would save'}: ${saved}`);
+  console.log(`  Skipped: ${skipped}`);
+  console.log(`  Errors: ${errors}`);
+  
+  if (!saveToDb) {
+    console.log('');
+    console.log('💡 Run with --save to persist to database');
+  }
+}
+
+async function saveSeriesFromTest(seriesName?: string) {
+  const name = seriesName || 'The Stormlight Archive';
+  
+  console.log(`💾 Fetching and saving: "${name}"`);
+  console.log('─'.repeat(50));
+  
+  // Check if already exists
+  const existing = findSeriesByName(name);
+  if (existing) {
+    console.log(`⚠️ Series already exists in database (ID: ${existing.id})`);
+    console.log(`   Name: ${existing.name}`);
+    console.log(`   Books: ${existing.total_books}`);
+    return;
+  }
+  
+  // Fetch from ISFDB
+  const result = await fetchISFDB(name);
+  
+  if (result.error || !result.series) {
+    console.log(`❌ Error fetching series: ${result.error || 'No data'}`);
+    return;
+  }
+  
+  const series = result.series;
+  console.log(`✅ Found: ${series.name} - ${series.books.length} books`);
+  
+  // Calculate year range
+  const years = series.books.map(b => b.yearPublished).filter((y): y is number => y !== undefined);
+  const yearStart = years.length > 0 ? Math.min(...years) : undefined;
+  const yearEnd = years.length > 0 ? Math.max(...years) : undefined;
+  
+  // Save to database
+  const seriesId = upsertSeries({
+    name: series.name,
+    author: series.author,
+    total_books: series.books.length,
+    year_start: yearStart,
+    year_end: yearEnd,
+    confidence: 0.8,
+    isfdb_id: series.sourceId,
+  });
+  
+  console.log(`📁 Saved series with ID: ${seriesId}`);
+  
+  // Save each book
+  for (const book of series.books) {
+    upsertSeriesBook({
+      series_id: seriesId,
+      title: book.title,
+      position: book.position,
+      author: book.author,
+      year_published: book.yearPublished,
+      confidence: 0.8,
+    });
+    console.log(`  📖 Saved: ${book.position}. ${book.title}`);
+  }
+  
+  // Store raw source data
+  storeSourceData(seriesId, 'isfdb', result.raw, series.books.length);
+  
+  console.log('');
+  console.log('✅ Series saved successfully!');
 }
 
 async function runVerify() {
   console.log('✅ Verifying existing series...');
   console.log('─'.repeat(50));
-  console.log('Not yet implemented - coming soon!');
+  
+  // Get series needing verification
+  const toVerify = getSeriesNeedingVerification(10);
+  
+  if (toVerify.length === 0) {
+    console.log('No series need verification!');
+    return;
+  }
+  
+  console.log(`Found ${toVerify.length} series needing verification:`);
+  console.log('');
+  
+  for (const series of toVerify) {
+    console.log(`📋 ${series.name}`);
+    console.log(`   Confidence: ${(series.confidence * 100).toFixed(1)}%`);
+    console.log(`   Books: ${series.total_books || '?'}`);
+    console.log(`   Author: ${series.author || 'Unknown'}`);
+    
+    // Fetch fresh data from ISFDB
+    if (series.isfdb_id) {
+      console.log(`   Refreshing from ISFDB...`);
+      const result = await fetchSeriesById(series.isfdb_id);
+      
+      if (result.series) {
+        const freshBooks = result.series.books.length;
+        const diff = freshBooks - (series.total_books || 0);
+        
+        if (diff !== 0) {
+          console.log(`   ⚠️ Book count changed: ${series.total_books} → ${freshBooks} (${diff > 0 ? '+' : ''}${diff})`);
+        } else {
+          console.log(`   ✅ Book count verified: ${freshBooks}`);
+        }
+      }
+    }
+    console.log('');
+  }
+  
+  console.log('─'.repeat(50));
+  console.log('💡 Full verification with cross-source reconciliation coming soon!');
 }
 
 main().catch(console.error);
