@@ -1,0 +1,42 @@
+{
+  "name": "nachoseries",
+  "type": "module",
+  "version": "0.1.0",
+  "description": "Series database builder - aggregates and reconciles book series data from multiple sources",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "test": "vitest",
+    "test:accuracy": "vitest run tests/accuracy.test.ts",
+    "crawl": "tsx src/index.ts crawl",
+    "verify": "tsx src/index.ts verify",
+    "db:init": "tsx src/database/init.ts"
+  },
+  "keywords": [
+    "books",
+    "series",
+    "indexer",
+    "librarything",
+    "openlibrary"
+  ],
+  "author": "NachosNcheeze",
+  "license": "MIT",
+  "dependencies": {
+    "better-sqlite3": "^11.0.0",
+    "cheerio": "^1.0.0",
+    "node-cron": "^3.0.3",
+    "p-limit": "^5.0.0",
+    "string-similarity": "^4.0.4"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.8",
+    "@types/node": "^20.10.0",
+    "@types/node-cron": "^3.0.11",
+    "@types/string-similarity": "^4.0.2",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.0",
+    "vitest": "^1.0.0"
+  }
+}

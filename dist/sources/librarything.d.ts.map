@@ -1,0 +1,1 @@
+{"version":3,"file":"librarything.d.ts","sourceRoot":"","sources":["../../src/sources/librarything.ts"],"names":[],"mappings":"AAAA;;;;GAIG;AAKH,OAAO,KAAK,EAA4B,YAAY,EAAE,MAAM,aAAa,CAAC;AA6B1E;;GAEG;AACH,wBAAsB,WAAW,CAAC,UAAU,EAAE,MAAM,GAAG,OAAO,CAAC,YAAY,CAAC,CA8E3E;AA4JD;;;GAGG;AACH,wBAAsB,mBAAmB,CAAC,KAAK,EAAE,MAAM,EAAE,KAAK,SAAK,GAAG,OAAO,CAAC,MAAM,EAAE,CAAC,CAwCtF"}
