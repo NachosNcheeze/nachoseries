@@ -7323,3 +7323,2047 @@ Found 11408 untagged series with ISFDB IDs
 [ISFDB] Found tags: fantasy
 [ISFDB] Parsed 3 books from HTML
 [2181/11408] 🏷️  The Vildecaz Talents → fantasy (from: fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?26969
+[ISFDB] Parsed 14 books from HTML
+[2182/11408] ⏭️  Clarkesworld Annuals - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?26970
+[ISFDB] Found tags: vampires, paranormal romance
+[ISFDB] Parsed 3 books from HTML
+[2183/11408] 🏷️  Bayou Gavotte → horror (from: vampires, paranormal romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?26971
+[ISFDB] Found tags: paranormal romance
+[ISFDB] Parsed 8 books from HTML
+[2184/11408] 🏷️  Primal Instinct → romance (from: paranormal romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?26972
+[ISFDB] Found tags: urban fantasy
+[ISFDB] Parsed 3 books from HTML
+[2185/11408] 🏷️  Gavyn Donatti → fantasy (from: urban fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?26973
+[ISFDB] Parsed 3 books from HTML
+[2186/11408] ⏭️  Eve - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?26974
+[ISFDB] Found tags: young-adult fantasy
+[ISFDB] Parsed 3 books from HTML
+[2187/11408] 🏷️  The Bonemender → fantasy (from: young-adult fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?26975
+[ISFDB] Found tags: paranormal romance, sylphs
+[ISFDB] Parsed 4 books from HTML
+[2188/11408] 🏷️  Sylph Valley → romance (from: paranormal romance, sylphs)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?26976
+[ISFDB] Found tags: horror, young-adult horror
+[ISFDB] Parsed 6 books from HTML
+[2189/11408] 🏷️  John Cleaver → horror (from: horror, young-adult horror)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?26977
+[ISFDB] Found tags: paranormal romance, vampires, werewolf
+[ISFDB] Parsed 2 books from HTML
+[2190/11408] 🏷️  Wicked Games → horror (from: paranormal romance, vampires, werewolf)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?26979
+[ISFDB] Found tags: young-adult fantasy
+[ISFDB] Parsed 2 books from HTML
+[2191/11408] 🏷️  Tales of the Broken Moon → fantasy (from: young-adult fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?26984
+[ISFDB] Found tags: fantasy
+[ISFDB] Parsed 8 books from HTML
+[2192/11408] 🏷️  From Grandeville → fantasy (from: fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?26988
+[ISFDB] Parsed 2 books from HTML
+[2193/11408] ⏭️  Earthfleet Saga - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?26990
+[ISFDB] Found tags: paranormal romance, vampires, vampire romance
+[ISFDB] Parsed 8 books from HTML
+[2194/11408] 🏷️  The Children of the Night → romance (from: paranormal romance, vampires, vampire romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?26991
+[ISFDB] Parsed 2 books from HTML
+[2195/11408] ⏭️  Lachymal Chronicles - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?26993
+[ISFDB] Found tags: paranormal romance, werewolf
+[ISFDB] Parsed 4 books from HTML
+[2196/11408] 🏷️  Wolf Maiden Saga → horror (from: paranormal romance, werewolf)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?26994
+[ISFDB] Found tags: fantasy
+[ISFDB] Parsed 6 books from HTML
+[2197/11408] 🏷️  The Abyss Walker (second layout) → fantasy (from: fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?26995
+[ISFDB] Parsed 3 books from HTML
+[2198/11408] ⏭️  Were-War - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?26999
+[ISFDB] Found tags: juvenile fantasy, magic
+[ISFDB] Parsed 3 books from HTML
+[2199/11408] 🏷️  Truthseekers → fantasy (from: juvenile fantasy, magic)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27005
+[ISFDB] Found tags: horror
+[ISFDB] Parsed 2 books from HTML
+[2200/11408] 🏷️  The Infernal Game → horror (from: horror)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27011
+[ISFDB] Found tags: urban fantasy, angry robot
+[ISFDB] Parsed 4 books from HTML
+[2201/11408] 🏷️  The Courts of the Feyre → fantasy (from: urban fantasy, angry robot)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27012
+[ISFDB] Found tags: alternate history, historical fantasy
+[ISFDB] Parsed 3 books from HTML
+[2202/11408] 🏷️  Romanitas → science-fiction (from: alternate history, historical fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27013
+[ISFDB] Found tags: vampires, erotica, gay
+[ISFDB] Parsed 5 books from HTML
+[2203/11408] 🏷️  Paris Immortal → horror (from: vampires, erotica, gay)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27014
+[ISFDB] Found tags: fantasy
+[ISFDB] Parsed 3 books from HTML
+[2204/11408] 🏷️  The Annals of Drakis → fantasy (from: fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27015
+[ISFDB] Found tags: urban fantasy, demons
+[ISFDB] Parsed 5 books from HTML
+[2205/11408] 🏷️  Jesse James Dawson → fantasy (from: urban fantasy, demons)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27018
+[ISFDB] Found tags: paranormal romance, time travel, time-travel romance
+[ISFDB] Parsed 10 books from HTML
+[2206/11408] 🏷️  Viking (Series II) → romance (from: paranormal romance, time travel, time-travel romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27019
+[ISFDB] Found tags: time travel, romance, time-travel romance, paranormal romance
+[ISFDB] Parsed 4 books from HTML
+[2207/11408] 🏷️  Viking (Series I) → romance (from: time travel, romance, time-travel romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27020
+[ISFDB] Found tags: young-adult fantasy
+[ISFDB] Parsed 6 books from HTML
+[2208/11408] 🏷️  Dreamhouse Kings → fantasy (from: young-adult fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27021
+[ISFDB] Found tags: young-adult sf
+[ISFDB] Parsed 3 books from HTML
+[2209/11408] 🏷️  Airhead → science-fiction (from: young-adult sf)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27022
+[ISFDB] Found tags: mythological fantasy, fantasy, india
+[ISFDB] Parsed 3 books from HTML
+[2210/11408] 🏷️  The Shiva Trilogy → fantasy (from: mythological fantasy, fantasy, india)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27023
+[ISFDB] Found tags: fantasy romance, angels
+[ISFDB] Parsed 3 books from HTML
+[2211/11408] 🏷️  Heavenly → fantasy (from: fantasy romance, angels)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27024
+[ISFDB] Found tags: juvenile fantasy
+[ISFDB] Parsed 7 books from HTML
+[2212/11408] 🏷️  Party Fairies → fantasy (from: juvenile fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27032
+[ISFDB] Found tags: paranormal romance, urban fantasy, vampires
+[ISFDB] Parsed 3 books from HTML
+[2213/11408] 🏷️  Melina Markowitz, Messenger → horror (from: paranormal romance, urban fantasy, vampires)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27033
+[ISFDB] Found tags: urban fantasy, secret history, vampires
+[ISFDB] Parsed 3 books from HTML
+[2214/11408] 🏷️  Rhiannon's Law → horror (from: urban fantasy, secret history, vampires)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27034
+[ISFDB] Found tags: urban fantasy, demons
+[ISFDB] Parsed 9 books from HTML
+[2215/11408] 🏷️  Kara Gillian → fantasy (from: urban fantasy, demons)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27038
+[ISFDB] Found tags: paranormal romance, urban fantasy, demons, angels
+[ISFDB] Parsed 6 books from HTML
+[2216/11408] 🏷️  Fallen Angels (J. R. Ward) → fantasy (from: paranormal romance, urban fantasy, demons)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27039
+[ISFDB] Found tags: young-adult fantasy, time travel
+[ISFDB] Parsed 3 books from HTML
+[2217/11408] 🏷️  The Runestone Saga → science-fiction (from: young-adult fantasy, time travel)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27040
+[ISFDB] Found tags: paranormal romance, time travel
+[ISFDB] Parsed 4 books from HTML
+[2218/11408] 🏷️  Time Raiders → romance (from: paranormal romance, time travel)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27041
+[ISFDB] Found tags: paranormal romance
+[ISFDB] Parsed 6 books from HTML
+[2219/11408] 🏷️  Warriors for the Light → romance (from: paranormal romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27045
+[ISFDB] Found tags: juvenile fantasy
+[ISFDB] Parsed 3 books from HTML
+[2220/11408] 🏷️  The Remarkable Adventures of Tom Scatterhorn → fantasy (from: juvenile fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27046
+[ISFDB] Found tags: juvenile fantasy
+[ISFDB] Parsed 3 books from HTML
+[2221/11408] 🏷️  Magickeepers → fantasy (from: juvenile fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27050
+[ISFDB] Found tags: young-adult fantasy, teen fantasy, teen urban fantasy, teen horror
+[ISFDB] Parsed 2 books from HTML
+[2222/11408] 🏷️  Malice → fantasy (from: young-adult fantasy, teen fantasy, teen urban fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27052
+[ISFDB] Found tags: fantasy
+[ISFDB] Parsed 3 books from HTML
+[2223/11408] 🏷️  Merlin (James Mallory) → fantasy (from: fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27053
+[ISFDB] Found tags: paranormal romance
+[ISFDB] Parsed 4 books from HTML
+[2224/11408] 🏷️  The Shadowmen → romance (from: paranormal romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27054
+[ISFDB] Found tags: vampires, paranormal romance
+[ISFDB] Parsed 3 books from HTML
+[2225/11408] 🏷️  Rogue Hunter → horror (from: vampires, paranormal romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27055
+[ISFDB] Found tags: juvenile fantasy
+[ISFDB] Parsed 4 books from HTML
+[2226/11408] 🏷️  Rose → fantasy (from: juvenile fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27056
+[ISFDB] Found tags: juvenile fantasy, animal fantasy, hamsters, cats, dogs, birds, rabbits, horses, mice
+[ISFDB] Parsed 7 books from HTML
+[2227/11408] 🏷️  Lottie → fantasy (from: juvenile fantasy, animal fantasy, hamsters)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27061
+[ISFDB] Found tags: paranormal romance, shapechangers
+[ISFDB] Parsed 6 books from HTML
+[2228/11408] 🏷️  The Gray Court → romance (from: paranormal romance, shapechangers)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27062
+[ISFDB] Found tags: time travel, young-adult fantasy
+[ISFDB] Parsed 3 books from HTML
+[2229/11408] 🏷️  Hourglass Door → science-fiction (from: time travel, young-adult fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27063
+[ISFDB] Found tags: young-adult fantasy, young-adult humorous fantasy
+[ISFDB] Parsed 5 books from HTML
+[2230/11408] 🏷️  Measle Stubbs → fantasy (from: young-adult fantasy, young-adult humorous fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27064
+[ISFDB] Found tags: paranormal romance, fantasy, shapechangers
+[ISFDB] Parsed 6 books from HTML
+[2231/11408] 🏷️  Guardians of Light → romance (from: paranormal romance, fantasy, shapechangers)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27069
+[ISFDB] Found tags: science fiction, perry rhodan, space opera, into-movie, cult fiction, immortality, telekinetics, betelgeuse, psychological warfare, war with aliens, ftl communication, ftl travel, hard sf, interstellar travel, humanoid aliens, artificial intelligence, space warfare, telepaths, remote viewing, reptilian aliens
+[ISFDB] Parsed 23 books from HTML
+[2232/11408] 🏷️  PR Zyklus 1: Die Dritte Macht → science-fiction (from: science fiction, perry rhodan, space opera)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27070
+[ISFDB] Found tags: juvenile fantasy
+[ISFDB] Parsed 5 books from HTML
+[2233/11408] 🏷️  Something Wickedly Weird → fantasy (from: juvenile fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27074
+[ISFDB] Found tags: christian fantasy
+[ISFDB] Parsed 3 books from HTML
+[2234/11408] 🏷️  The Chiveis Trilogy → fantasy (from: christian fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27075
+[ISFDB] Parsed 7 books from HTML
+[2235/11408] ⏭️  Department 18 - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27080
+[ISFDB] Found tags: juvenile fantasy
+[ISFDB] Parsed 7 books from HTML
+[2236/11408] 🏷️  Circles of Heck → fantasy (from: juvenile fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27082
+[ISFDB] Found tags: futuristic romance, fantasy
+[ISFDB] Parsed 2 books from HTML
+[2237/11408] 🏷️  Realms Beyond → fantasy (from: futuristic romance, fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27084
+[ISFDB] Found tags: young-adult fantasy
+[ISFDB] Parsed 3 books from HTML
+[2238/11408] 🏷️  Faeriewalker → fantasy (from: young-adult fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27085
+[ISFDB] Parsed 5 books from HTML
+[2239/11408] ⏭️  Night Tracker - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27086
+[ISFDB] Found tags: fantasy
+[ISFDB] Parsed 2 books from HTML
+[2240/11408] 🏷️  Fisherman's Children → fantasy (from: fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27087
+[ISFDB] Parsed 2 books from HTML
+[2241/11408] ⏭️  Lost Stars - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27090
+[ISFDB] Parsed 5 books from HTML
+[2242/11408] ⏭️  The Collected Short Fiction of Robert Sheckley - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27091
+[ISFDB] Found tags: paranormal romance
+[ISFDB] Parsed 3 books from HTML
+[2243/11408] 🏷️  Living in Eden → romance (from: paranormal romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27095
+[ISFDB] Found tags: young-adult fantasy, paranormal mystery, paranormal romance, young-adult, young-adult paranormal
+[ISFDB] Parsed 4 books from HTML
+[2244/11408] 🏷️  The Body Finder → romance (from: young-adult fantasy, paranormal mystery, paranormal romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27096
+[ISFDB] Found tags: young-adult fantasy
+[ISFDB] Parsed 4 books from HTML
+[2245/11408] 🏷️  Hush, Hush → fantasy (from: young-adult fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27097
+[ISFDB] Found tags: urban fantasy, fantasy
+[ISFDB] Parsed 6 books from HTML
+[2246/11408] 🏷️  Deadtown → fantasy (from: urban fantasy, fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27098
+[ISFDB] Found tags: young-adult fantasy
+[ISFDB] Parsed 4 books from HTML
+[2247/11408] 🏷️  Need → fantasy (from: young-adult fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27099
+[ISFDB] Found tags: young-adult fantasy, fairies
+[ISFDB] Parsed 4 books from HTML
+[2248/11408] 🏷️  The Iron Fey → fantasy (from: young-adult fantasy, fairies)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27101
+[ISFDB] Found tags: horror, vampires, apocalypse, into-tv, eclipse, post apocalypse
+[ISFDB] Parsed 3 books from HTML
+[2249/11408] 🏷️  The Strain → horror (from: horror, vampires, apocalypse)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27103
+[ISFDB] Found tags: juvenile sf
+[ISFDB] Parsed 3 books from HTML
+[2250/11408] 🏷️  The Prometheus Project → science-fiction (from: juvenile sf)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27105
+[ISFDB] Found tags: young-adult fantasy, vampires, demons, kindle unlimited
+[ISFDB] Parsed 10 books from HTML
+[2251/11408] 🏷️  Chronicles of Nick → horror (from: young-adult fantasy, vampires, demons)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27107
+[ISFDB] Found tags: fantasy, time travel
+[ISFDB] Parsed 3 books from HTML
+[2252/11408] 🏷️  Tenebrae → science-fiction (from: fantasy, time travel)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27108
+[ISFDB] Found tags: post-apocalyptic, africa, science fiction
+[ISFDB] Parsed 2 books from HTML
+[2253/11408] 🏷️  Mara and Dann → post-apocalyptic (from: post-apocalyptic, africa, science fiction)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27109
+[ISFDB] Found tags: science fiction
+[ISFDB] Parsed 9 books from HTML
+[2254/11408] 🏷️  Sentinels (Van Allen Plexico) → science-fiction (from: science fiction)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27110
+[ISFDB] Found tags: horror, vampires
+[ISFDB] Parsed 7 books from HTML
+[2255/11408] 🏷️  Montgomery Quinn → horror (from: horror, vampires)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27114
+[ISFDB] Found tags: historical fantasy
+[ISFDB] Parsed 2 books from HTML
+[2256/11408] 🏷️  The Druids of Hibernia → fantasy (from: historical fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27116
+[ISFDB] Found tags: young-adult fantasy
+[ISFDB] Parsed 3 books from HTML
+[2257/11408] 🏷️  Gods of Manhattan → fantasy (from: young-adult fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27117
+[ISFDB] Parsed 3 books from HTML
+[2258/11408] ⏭️  Light Dragons - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27120
+[ISFDB] Found tags: juvenile fantasy, vampires
+[ISFDB] Parsed 8 books from HTML
+[2259/11408] 🏷️  Poison Apple → horror (from: juvenile fantasy, vampires)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27121
+[ISFDB] Parsed 3 books from HTML
+[2260/11408] ⏭️  The Talions - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27124
+[ISFDB] Found tags: paranormal romance, futuristic romance, historical fantasy
+[ISFDB] Parsed 3 books from HTML
+[2261/11408] 🏷️  Matrix of Destiny → romance (from: paranormal romance, futuristic romance, historical fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27125
+[ISFDB] Found tags: paranormal romance
+[ISFDB] Parsed 11 books from HTML
+[2262/11408] 🏷️  The Sentinel Wars → romance (from: paranormal romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27127
+[ISFDB] Found tags: thriller, time travel, immortality, cloning, supernatural thriller
+[ISFDB] Parsed 17 books from HTML
+[2263/11408] 🏷️  Chess Team / Jack Sigler → science-fiction (from: thriller, time travel, immortality)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27128
+[ISFDB] Parsed 4 books from HTML
+[2264/11408] ⏭️  Sherry Holmes Baldwin - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27131
+[ISFDB] Found tags: young-adult ghost story, young-adult fantasy, shamans, planes of existence, adventure
+[ISFDB] Parsed 3 books from HTML
+[2265/11408] 🏷️  Neddie, Iggy and Seamus → thriller (from: young-adult ghost story, young-adult fantasy, shamans)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27134
+[ISFDB] Parsed 2 books from HTML
+[2266/11408] ⏭️  The Tales of Tanglewood - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27137
+[ISFDB] Found tags: space opera
+[ISFDB] Parsed 9 books from HTML
+[2267/11408] 🏷️  Equations → science-fiction (from: space opera)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27139
+[ISFDB] Found tags: alternate history
+[ISFDB] Parsed 6 books from HTML
+[2268/11408] 🏷️  His Majesty's New World → science-fiction (from: alternate history)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27140
+[ISFDB] Parsed 20 books from HTML
+[2269/11408] ⏭️  Defense Command / Martian War - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27143
+[ISFDB] Parsed 3 books from HTML
+[2270/11408] ⏭️  Stories from the Circle - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27144
+[ISFDB] Found tags: telepathy, ninth solar planet, small sun, science fiction, space travel, strong female characters, sf romance, mercury, venus, venusians, alpha centauri
+[ISFDB] Parsed 2 books from HTML
+[2271/11408] 🏷️  The Void (Leslie F. Stone) → science-fiction (from: telepathy, ninth solar planet, small sun)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27145
+[ISFDB] Found tags: steampunk
+[ISFDB] Parsed 4 books from HTML
+[2272/11408] 🏷️  Strangely Beautiful → science-fiction (from: steampunk)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27151
+[ISFDB] Found tags: novelization
+[ISFDB] Parsed 2 books from HTML
+[2273/11408] ⏭️  Brettonian Knights (tags: novelization) - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27152
+[ISFDB] Parsed 2 books from HTML
+[2274/11408] ⏭️  Keeper (Langan) - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27154
+[ISFDB] Found tags: fantasy
+[ISFDB] Parsed 2 books from HTML
+[2275/11408] 🏷️  Billibub Baddings → fantasy (from: fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27156
+[ISFDB] Found tags: young-adult ghost romance
+[ISFDB] Parsed 2 books from HTML
+[2276/11408] 🏷️  Bard Academy → romance (from: young-adult ghost romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27157
+[ISFDB] Found tags: young-adult fantasy
+[ISFDB] Parsed 2 books from HTML
+[2277/11408] 🏷️  Hidden Talents → fantasy (from: young-adult fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27159
+[ISFDB] Found tags: lovecraftian
+[ISFDB] Parsed 3 books from HTML
+[2278/11408] 🏷️  Cthulhu Unbound → horror (from: lovecraftian)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27162
+[ISFDB] Found tags: urban fantasy
+[ISFDB] Parsed 5 books from HTML
+[2279/11408] 🏷️  Black Sun's Daughter → fantasy (from: urban fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27163
+[ISFDB] Found tags: dragons, magic
+[ISFDB] Parsed 3 books from HTML
+[2280/11408] 🏷️  Moshui, the Books of Stone and Water → fantasy (from: dragons, magic)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27166
+[ISFDB] Found tags: young-adult horror, vampires, werewolf
+[ISFDB] Parsed 2 books from HTML
+[2281/11408] 🏷️  Rancour Chronicles → horror (from: young-adult horror, vampires, werewolf)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27169
+[ISFDB] Parsed 2 books from HTML
+[2282/11408] ⏭️  Distant Passages - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27171
+[ISFDB] Found tags: werewolf, erotic fantasy, paranormal romance
+[ISFDB] Parsed 3 books from HTML
+[2283/11408] 🏷️  Silver Werewolves → horror (from: werewolf, erotic fantasy, paranormal romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27172
+[ISFDB] Found tags: fantasy, historical fantasy
+[ISFDB] Parsed 8 books from HTML
+[2284/11408] 🏷️  Brenda and Effie → fantasy (from: fantasy, historical fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27173
+[ISFDB] Found tags: fantasy romance, young-adult fantasy, fantasy, politics, magicians, food, court intrigue
+[ISFDB] Parsed 11 books from HTML
+[2285/11408] 🏷️  Ixia & Sitia milieu → fantasy (from: fantasy romance, young-adult fantasy, fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27175
+[ISFDB] Found tags: young-adult sf, young-adult fantasy
+[ISFDB] Parsed 4 books from HTML
+[2286/11408] 🏷️  The Declaration → science-fiction (from: young-adult sf, young-adult fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27176
+[ISFDB] Found tags: young-adult arthurian fantasy, young-adult historical fantasy
+[ISFDB] Parsed 2 books from HTML
+[2287/11408] 🏷️  Lady Ilena → fantasy (from: young-adult arthurian fantasy, young-adult historical fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27181
+[ISFDB] Found tags: young-adult fantasy
+[ISFDB] Parsed 3 books from HTML
+[2288/11408] 🏷️  The Crow Chronicles → fantasy (from: young-adult fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27183
+[ISFDB] Parsed 4 books from HTML
+[2289/11408] ⏭️  Olympus - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27185
+[ISFDB] Found tags: time travel
+[ISFDB] Parsed 2 books from HTML
+[2290/11408] 🏷️  The Safety Factor → science-fiction (from: time travel)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27187
+[ISFDB] Parsed 3 books from HTML
+[2291/11408] ⏭️  A Very Heavy Fairytale - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27195
+[ISFDB] Found tags: young-adult sf
+[ISFDB] Parsed 10 books from HTML
+[2292/11408] 🏷️  NEBADOR → science-fiction (from: young-adult sf)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27196
+[ISFDB] Parsed 5 books from HTML
+[2293/11408] ⏭️  Conor and the Crossworlds - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27197
+[ISFDB] Parsed 2 books from HTML
+[2294/11408] ⏭️  The Immortyl Revolution - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27202
+[ISFDB] Found tags: urban fantasy, werewolf
+[ISFDB] Parsed 4 books from HTML
+[2295/11408] 🏷️  Immortal → horror (from: urban fantasy, werewolf)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27208
+[ISFDB] Parsed 2 books from HTML
+[2296/11408] ⏭️  One Small Step Out of the Garden of Eden - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27209
+[ISFDB] Parsed 4 books from HTML
+[2297/11408] ⏭️  Spidey Legs Lana - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27212
+[ISFDB] Parsed 3 books from HTML
+[2298/11408] ⏭️  W.I.T.C.H. Adventures - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27213
+[ISFDB] Found tags: young-adult fantasy, teen fantasy
+[ISFDB] Parsed 3 books from HTML
+[2299/11408] 🏷️  The Chronicles of Estelliana → fantasy (from: young-adult fantasy, teen fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27214
+[ISFDB] Found tags: juvenile fantasy
+[ISFDB] Parsed 3 books from HTML
+[2300/11408] 🏷️  Astral Legacies → fantasy (from: juvenile fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27215
+[ISFDB] Parsed 2 books from HTML
+[2301/11408] ⏭️  The Collected Stories of Clifford D. Simak - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27217
+[ISFDB] Found tags: juvenile fantasy, christian fantasy
+[ISFDB] Parsed 3 books from HTML
+[2302/11408] 🏷️  Mareena Maree Mulligan and the Flying Wheelchair → fantasy (from: juvenile fantasy, christian fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27218
+[ISFDB] Found tags: young-adult fantasy
+[ISFDB] Parsed 2 books from HTML
+[2303/11408] 🏷️  The Plant That Ate Dirty Socks → fantasy (from: young-adult fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27219
+[ISFDB] Found tags: alternate history, parallel universe, dystopia, british dystopia, color vision, social stratification, man-eating plants, government conspiracy, spoon scarcity
+[ISFDB] Parsed 2 books from HTML
+[2304/11408] 🏷️  Shades of Grey → science-fiction (from: alternate history, parallel universe, dystopia)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27220
+[ISFDB] Found tags: urban fantasy, vampires, werewolf, witches
+[ISFDB] Parsed 6 books from HTML
+[2305/11408] 🏷️  Persephone Alcmedi → horror (from: urban fantasy, vampires, werewolf)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27221
+[ISFDB] Found tags: urban fantasy, parallel universe
+[ISFDB] Parsed 6 books from HTML
+[2306/11408] 🏷️  The Bloodhound Files → science-fiction (from: urban fantasy, parallel universe)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27224
+[ISFDB] Found tags: paranormal romance
+[ISFDB] Parsed 6 books from HTML
+[2307/11408] 🏷️  Moon Chasers → romance (from: paranormal romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27225
+[ISFDB] Found tags: paranormal romance, historical romance, gothic
+[ISFDB] Parsed 3 books from HTML
+[2308/11408] 🏷️  Sean Killdaren → romance (from: paranormal romance, historical romance, gothic)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27228
+[ISFDB] Found tags: paranormal romance
+[ISFDB] Parsed 2 books from HTML
+[2309/11408] 🏷️  Secrets Trilogy → romance (from: paranormal romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27229
+[ISFDB] Found tags: paranormal romance
+[ISFDB] Parsed 5 books from HTML
+[2310/11408] 🏷️  The Doomsday Brethren → romance (from: paranormal romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27231
+[ISFDB] Parsed 3 books from HTML
+[2311/11408] ⏭️  Bearwalker - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27233
+[ISFDB] Found tags: vampires, urban fantasy, dark fantasy, werewolf
+[ISFDB] Parsed 4 books from HTML
+[2312/11408] 🏷️  Void City → horror (from: vampires, urban fantasy, dark fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27236
+[ISFDB] Found tags: paranormal romance
+[ISFDB] Parsed 7 books from HTML
+[2313/11408] 🏷️  Jean Fairbairn & Alasdair Cameron → romance (from: paranormal romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27237
+[ISFDB] Found tags: paranormal romance
+[ISFDB] Parsed 4 books from HTML
+[2314/11408] 🏷️  Winslow Witches of Salem → romance (from: paranormal romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27238
+[ISFDB] Parsed 2 books from HTML
+[2315/11408] ⏭️  In Their Own Skins - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27239
+[ISFDB] Found tags: paranormal romance
+[ISFDB] Parsed 2 books from HTML
+[2316/11408] 🏷️  Falcon Mercenary Group → romance (from: paranormal romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27241
+[ISFDB] Found tags: christian fantasy
+[ISFDB] Parsed 2 books from HTML
+[2317/11408] 🏷️  Heaven Sent (Montre Bible) → fantasy (from: christian fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27242
+[ISFDB] Found tags: science fiction, space opera, time, artificial intelligence
+[ISFDB] Parsed 25 books from HTML
+[2318/11408] 🏷️  PR Zyklus 2: Atlan und Arkon → science-fiction (from: science fiction, space opera, time)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27250
+[ISFDB] Found tags: fantasy
+[ISFDB] Parsed 5 books from HTML
+[2319/11408] 🏷️  Order of Solace → fantasy (from: fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27252
+[ISFDB] Found tags: paranormal romance
+[ISFDB] Parsed 3 books from HTML
+[2320/11408] 🏷️  Spellbound (Sydney Somers) → romance (from: paranormal romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27253
+[ISFDB] Parsed 2 books from HTML
+[2321/11408] ⏭️  Bloodchained - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27255
+[ISFDB] Found tags: historical fantasy, werewolf, paranormal romance
+[ISFDB] Parsed 2 books from HTML
+[2322/11408] 🏷️  Wolf → horror (from: historical fantasy, werewolf, paranormal romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27256
+[ISFDB] Found tags: paranormal romance, historical fantasy, shapechangers
+[ISFDB] Parsed 4 books from HTML
+[2323/11408] 🏷️  The Relics of Merlin → romance (from: paranormal romance, historical fantasy, shapechangers)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27257
+[ISFDB] Parsed 5 books from HTML
+[2324/11408] ⏭️  Blazing Bedtime Stories - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27258
+[ISFDB] Found tags: paranormal romance
+[ISFDB] Parsed 3 books from HTML
+[2325/11408] 🏷️  Seduction → romance (from: paranormal romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27259
+[ISFDB] Found tags: juvenile fantasy, young-adult fantasy
+[ISFDB] Parsed 3 books from HTML
+[2326/11408] 🏷️  The Pillage Trilogy (Pillogy) → fantasy (from: juvenile fantasy, young-adult fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27262
+[ISFDB] Found tags: paranormal romance, shapechangers, hockey
+[ISFDB] Parsed 9 books from HTML
+[2327/11408] 🏷️  Pride Stories → romance (from: paranormal romance, shapechangers, hockey)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27263
+[ISFDB] Found tags: paranormal romance, vampires
+[ISFDB] Parsed 4 books from HTML
+[2328/11408] 🏷️  Night Watch → horror (from: paranormal romance, vampires)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27264
+[ISFDB] Parsed 3 books from HTML
+[2329/11408] ⏭️  Midnight Trilogy - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27266
+[ISFDB] Found tags: paranormal romance
+[ISFDB] Parsed 2 books from HTML
+[2330/11408] 🏷️  The Foundation → romance (from: paranormal romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27268
+[ISFDB] Found tags: paranormal romance
+[ISFDB] Parsed 2 books from HTML
+[2331/11408] 🏷️  Eternity Covenant → romance (from: paranormal romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27271
+[ISFDB] Found tags: paranormal romance
+[ISFDB] Parsed 4 books from HTML
+[2332/11408] 🏷️  The Knights of White → romance (from: paranormal romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27272
+[ISFDB] Parsed 3 books from HTML
+[2333/11408] ⏭️  Moon Series - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27273
+[ISFDB] Found tags: paranormal romance
+[ISFDB] Parsed 3 books from HTML
+[2334/11408] 🏷️  Daughters of Arianne → romance (from: paranormal romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27274
+[ISFDB] Found tags: paranormal romance
+[ISFDB] Parsed 2 books from HTML
+[2335/11408] 🏷️  The Sentinels (Meg Allison) → romance (from: paranormal romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27275
+[ISFDB] Parsed 2 books from HTML
+[2336/11408] ⏭️  Legends (Carolan Ivey) - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27276
+[ISFDB] Found tags: paranormal romance
+[ISFDB] Parsed 4 books from HTML
+[2337/11408] 🏷️  Jane Jameson → romance (from: paranormal romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27278
+[ISFDB] Found tags: paranormal romance, werewolf
+[ISFDB] Parsed 3 books from HTML
+[2338/11408] 🏷️  MacInnes Werewolves → horror (from: paranormal romance, werewolf)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27279
+[ISFDB] Found tags: paranormal romance
+[ISFDB] Parsed 3 books from HTML
+[2339/11408] 🏷️  Soul Gatherers → romance (from: paranormal romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27281
+[ISFDB] Parsed 3 books from HTML
+[2340/11408] ⏭️  Triquetra - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27284
+[ISFDB] Found tags: fantasy, good vs evil, pirates
+[ISFDB] Parsed 5 books from HTML
+[2341/11408] 🏷️  Thlassa Mey → fantasy (from: fantasy, good vs evil, pirates)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27285
+[ISFDB] Found tags: young-adult animal fantasy
+[ISFDB] Parsed 6 books from HTML
+[2342/11408] 🏷️  Foxes → fantasy (from: young-adult animal fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27286
+[ISFDB] Found tags: historical fantasy
+[ISFDB] Parsed 4 books from HTML
+[2343/11408] 🏷️  Rebel Angels (Gillian Philip) → fantasy (from: historical fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27287
+[ISFDB] Found tags: paranormal romance
+[ISFDB] Parsed 7 books from HTML
+[2344/11408] 🏷️  The Lords of Satyr → romance (from: paranormal romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27288
+[ISFDB] Parsed 2 books from HTML
+[2345/11408] ⏭️  Soterians - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27289
+[ISFDB] Parsed 2 books from HTML
+[2346/11408] ⏭️  Aiza Clan - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27290
+[ISFDB] Found tags: juvenile fantasy
+[ISFDB] Parsed 7 books from HTML
+[2347/11408] 🏷️  Pongwiffy → fantasy (from: juvenile fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27294
+[ISFDB] Parsed 7 books from HTML
+[2348/11408] ⏭️  Bears Examining - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27295
+[ISFDB] Found tags: arthurian fantasy, arthuriana
+[ISFDB] Parsed 2 books from HTML
+[2349/11408] 🏷️  Mordred's Curse → fantasy (from: arthurian fantasy, arthuriana)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27296
+[ISFDB] Found tags: science fiction, robots, drugs, zombies, space opera
+[ISFDB] Parsed 32 books from HTML
+[2350/11408] 🏷️  PR Zyklus 3: Die Posbis → science-fiction (from: science fiction, robots, drugs)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27297
+[ISFDB] Found tags: vampires, horror, near future, science fiction, into-tv, viral diseases, survival, end of world, human experimentation
+[ISFDB] Parsed 3 books from HTML
+[2351/11408] 🏷️  The Passage → horror (from: vampires, horror, near future)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27298
+[ISFDB] Found tags: young-adult fantasy, psychic ability
+[ISFDB] Parsed 6 books from HTML
+[2352/11408] 🏷️  Ganzfield → fantasy (from: young-adult fantasy, psychic ability)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27300
+[ISFDB] Found tags: vampires, mystery
+[ISFDB] Parsed 2 books from HTML
+[2353/11408] 🏷️  Fang-in-Cheek / Madison Rose → horror (from: vampires, mystery)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27301
+[ISFDB] Found tags: fantasy, floating city, alliances, prince, cooking
+[ISFDB] Parsed 2 books from HTML
+[2354/11408] 🏷️  The Elder Scrolls → fantasy (from: fantasy, floating city, alliances)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27302
+[ISFDB] Found tags: vampires, paranormal romance
+[ISFDB] Parsed 5 books from HTML
+[2355/11408] 🏷️  Forever Vampires → horror (from: vampires, paranormal romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27305
+[ISFDB] Parsed 14 books from HTML
+[2356/11408] ⏭️  Queen B Superheroine - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27306
+[ISFDB] Parsed 3 books from HTML
+[2357/11408] ⏭️  Possessions - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27307
+[ISFDB] Parsed 4 books from HTML
+[2358/11408] ⏭️  Wordwick Games - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27308
+[ISFDB] Found tags: paranormal romance, historical fantasy, ghosts, fantasy romance, romance, time travel
+[ISFDB] Parsed 3 books from HTML
+[2359/11408] 🏷️  Boadicea → romance (from: paranormal romance, historical fantasy, ghosts)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27309
+[ISFDB] Found tags: gods, contemporary, alternate history, demigods, immortality, nevada, veles, juha, loki, coyote, anansi, pranks, possession, barrister, trickster gods, fantasy, pantheon, mythology, ashanti, first person point of view
+[ISFDB] Parsed 8 books from HTML
+[2360/11408] 🏷️  Pantheon / Age of ... → fantasy (from: gods, contemporary, alternate history)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27310
+[ISFDB] Found tags: young-adult sf
+[ISFDB] Parsed 3 books from HTML
+[2361/11408] 🏷️  Skinned / Cold Awakening → science-fiction (from: young-adult sf)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27311
+[ISFDB] Found tags: young-adult fantasy, witches, juvenile fantasy
+[ISFDB] Parsed 4 books from HTML
+[2362/11408] 🏷️  Rhiannon Godfrey → fantasy (from: young-adult fantasy, witches, juvenile fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27312
+[ISFDB] Found tags: young-adult sf
+[ISFDB] Parsed 3 books from HTML
+[2363/11408] 🏷️  Chasing Yesterday → science-fiction (from: young-adult sf)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27313
+[ISFDB] Found tags: young-adult fantasy, ghosts
+[ISFDB] Parsed 3 books from HTML
+[2364/11408] 🏷️  York Trilogy → horror (from: young-adult fantasy, ghosts)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27315
+[ISFDB] Parsed 4 books from HTML
+[2365/11408] ⏭️  Bedeviled - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27316
+[ISFDB] Found tags: science fiction, space opera, humorous
+[ISFDB] Parsed 20 books from HTML
+[2366/11408] 🏷️  PR Zyklus 4: Das Zweite Imperium → science-fiction (from: science fiction, space opera, humorous)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27317
+[ISFDB] Found tags: paranormal romance
+[ISFDB] Parsed 4 books from HTML
+[2367/11408] 🏷️  Kyndred → romance (from: paranormal romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27318
+[ISFDB] Found tags: paranormal romance, urban fantasy
+[ISFDB] Parsed 4 books from HTML
+[2368/11408] 🏷️  The Marked Souls → romance (from: paranormal romance, urban fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27320
+[ISFDB] Found tags: young-adult fantasy, paranormal romance, vampires, young-adult
+[ISFDB] Parsed 4 books from HTML
+[2369/11408] 🏷️  Darke Academy → horror (from: young-adult fantasy, paranormal romance, vampires)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27323
+[ISFDB] Found tags: paranormal romance, vampires, shapechangers
+[ISFDB] Parsed 3 books from HTML
+[2370/11408] 🏷️  Gods of the Night → horror (from: paranormal romance, vampires, shapechangers)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27324
+[ISFDB] Found tags: juvenile fantasy
+[ISFDB] Parsed 4 books from HTML
+[2371/11408] 🏷️  Nathaniel Fludd, Beastologist → fantasy (from: juvenile fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27327
+[ISFDB] Parsed 3 books from HTML
+[2372/11408] ⏭️  Bone Island Trilogy - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27328
+[ISFDB] Found tags: fantasy
+[ISFDB] Parsed 3 books from HTML
+[2373/11408] 🏷️  Legacy of Dhakaan → fantasy (from: fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27329
+[ISFDB] Found tags: young-adult fantasy, vampires, vampire romance, paranormal romance, interpersonal relations, cousins, brothers and sisters
+[ISFDB] Parsed 6 books from HTML
+[2374/11408] 🏷️  Drake Chronicles → romance (from: young-adult fantasy, vampires, vampire romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27330
+[ISFDB] Found tags: juvenile fantasy, young adult, gateway fantasy, cats, painting
+[ISFDB] Parsed 5 books from HTML
+[2375/11408] 🏷️  The Books of Elsewhere → fantasy (from: juvenile fantasy, young adult, gateway fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27331
+[ISFDB] Found tags: young-adult fantasy, psychic
+[ISFDB] Parsed 5 books from HTML
+[2376/11408] 🏷️  Lily Dale → fantasy (from: young-adult fantasy, psychic)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27333
+[ISFDB] Parsed 4 books from HTML
+[2377/11408] ⏭️  Chronicles of Valonia - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27336
+[ISFDB] Found tags: young-adult fantasy
+[ISFDB] Parsed 3 books from HTML
+[2378/11408] 🏷️  The Devouring → fantasy (from: young-adult fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27338
+[ISFDB] Found tags: horror, lovecraftian
+[ISFDB] Parsed 2 books from HTML
+[2379/11408] 🏷️  The Hive → horror (from: horror, lovecraftian)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27339
+[ISFDB] Found tags: paranormal romance, vampires
+[ISFDB] Parsed 2 books from HTML
+[2380/11408] 🏷️  Don't → horror (from: paranormal romance, vampires)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27341
+[ISFDB] Found tags: urban fantasy, paranormal suspense, paranormal romance
+[ISFDB] Parsed 6 books from HTML
+[2381/11408] 🏷️  Jane True → romance (from: urban fantasy, paranormal suspense, paranormal romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27342
+[ISFDB] Found tags: animal fantasy
+[ISFDB] Parsed 4 books from HTML
+[2382/11408] 🏷️  Mollisan Town Quartet → fantasy (from: animal fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27343
+[ISFDB] Found tags: juvenile fantasy, steampunk, robots, technology
+[ISFDB] Parsed 3 books from HTML
+[2383/11408] 🏷️  The Clockwork Chronicles → science-fiction (from: juvenile fantasy, steampunk, robots)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27345
+[ISFDB] Found tags: young-adult fantasy, werewolf
+[ISFDB] Parsed 4 books from HTML
+[2384/11408] 🏷️  The Wolves of Mercy Falls → horror (from: young-adult fantasy, werewolf)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27350
+[ISFDB] Parsed 3 books from HTML
+[2385/11408] ⏭️  Forrorrois - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27353
+[ISFDB] Parsed 4 books from HTML
+[2386/11408] ⏭️  Arcade Explorers - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27354
+[ISFDB] Parsed 3 books from HTML
+[2387/11408] ⏭️  Explorer - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27355
+[ISFDB] Parsed 3 books from HTML
+[2388/11408] ⏭️  The Sara Chronicles - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27358
+[ISFDB] Found tags: young-adult sf, young-adult fantasy
+[ISFDB] Parsed 3 books from HTML
+[2389/11408] 🏷️  Magician → science-fiction (from: young-adult sf, young-adult fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27360
+[ISFDB] Found tags: young-adult time-travel
+[ISFDB] Parsed 2 books from HTML
+[2390/11408] ⏭️  Doors Into Time (tags: young-adult time-travel) - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27361
+[ISFDB] Found tags: prehistoric fantasy, historical fantasy
+[ISFDB] Parsed 3 books from HTML
+[2391/11408] 🏷️  Touches the Stars → fantasy (from: prehistoric fantasy, historical fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27362
+[ISFDB] Found tags: horror, christmas, werewolves
+[ISFDB] Parsed 3 books from HTML
+[2392/11408] 🏷️  Moonchild (Kenneth McKenney) → horror (from: horror, christmas, werewolves)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27363
+[ISFDB] Found tags: science fiction
+[ISFDB] Parsed 4 books from HTML
+[2393/11408] 🏷️  Ghoster → science-fiction (from: science fiction)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27366
+[ISFDB] Found tags: historical fantasy
+[ISFDB] Parsed 3 books from HTML
+[2394/11408] 🏷️  Earthsong → fantasy (from: historical fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27367
+[ISFDB] Found tags: paranormal romance, shapechangers
+[ISFDB] Parsed 3 books from HTML
+[2395/11408] 🏷️  Circe's Recruits → romance (from: paranormal romance, shapechangers)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27368
+[ISFDB] Found tags: science fiction, erotica
+[ISFDB] Parsed 4 books from HTML
+[2396/11408] 🏷️  Interstellar Service & Discipline → science-fiction (from: science fiction, erotica)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27369
+[ISFDB] Parsed 2 books from HTML
+[2397/11408] ⏭️  The Mysterious Adventures of Dr. Shadows - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27370
+[ISFDB] Found tags: fantasy
+[ISFDB] Parsed 3 books from HTML
+[2398/11408] 🏷️  The Ancient Bloodlines Trilogy → fantasy (from: fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27371
+[ISFDB] Parsed 3 books from HTML
+[2399/11408] ⏭️  Chronicles of the Planeswalkers - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27373
+[ISFDB] Parsed 5 books from HTML
+[2400/11408] ⏭️  The Saga of Commodore John Grimes (Ace Double Set) - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27375
+[ISFDB] Found tags: fantasy
+[ISFDB] Parsed 6 books from HTML
+[2401/11408] 🏷️  Spelljammer → fantasy (from: fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27377
+[ISFDB] Found tags: fantasy
+[ISFDB] Parsed 2 books from HTML
+[2402/11408] 🏷️  Custodes Noctis → fantasy (from: fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27381
+[ISFDB] Found tags: historical fantasy
+[ISFDB] Parsed 3 books from HTML
+[2403/11408] 🏷️  Herculine → fantasy (from: historical fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27383
+[ISFDB] Found tags: fantasy
+[ISFDB] Parsed 2 books from HTML
+[2404/11408] 🏷️  Spellbinder (Melanie Rawn) → fantasy (from: fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27389
+[ISFDB] Parsed 2 books from HTML
+[2405/11408] ⏭️  The Circle - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27391
+[ISFDB] Found tags: fantasy
+[ISFDB] Parsed 3 books from HTML
+[2406/11408] 🏷️  Dragonlance: Heroes II → fantasy (from: fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27392
+[ISFDB] Found tags: fantasy
+[ISFDB] Parsed 3 books from HTML
+[2407/11408] 🏷️  Dragonlance: Preludes II → fantasy (from: fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27395
+[ISFDB] Found tags: intergalactic travel, doppelg�nger, androids, andromeda, swarm intelligence, strange vegetation, time travel, cosmology, economics, thriller, humorous, space opera, science fiction
+[ISFDB] Parsed 30 books from HTML
+[2408/11408] 🏷️  PR Zyklus 5: Die Meister der Insel → science-fiction (from: intergalactic travel, doppelg�nger, androids)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27397
+[ISFDB] Found tags: paranormal romance, historical fantasy
+[ISFDB] Parsed 3 books from HTML
+[2409/11408] 🏷️  Mystic Isles → romance (from: paranormal romance, historical fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27398
+[ISFDB] Found tags: fantasy, urban fantasy
+[ISFDB] Parsed 3 books from HTML
+[2410/11408] 🏷️  The Nexus Chronicles → fantasy (from: fantasy, urban fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27399
+[ISFDB] Parsed 5 books from HTML
+[2411/11408] ⏭️  Britt St. Vincent / Mind Masters - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27402
+[ISFDB] Found tags: urban fantasy, paranormal mystery
+[ISFDB] Parsed 4 books from HTML
+[2412/11408] 🏷️  Paranormal Scene Investigations → fantasy (from: urban fantasy, paranormal mystery)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27407
+[ISFDB] Found tags: military sf
+[ISFDB] Parsed 2 books from HTML
+[2413/11408] 🏷️  Captain Lannat → science-fiction (from: military sf)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27411
+[ISFDB] Found tags: fantasy, near future, horror, erotica
+[ISFDB] Parsed 2 books from HTML
+[2414/11408] 🏷️  The Great Purple Hoo-Ha: A Comedy of Perception → horror (from: fantasy, near future, horror)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27413
+[ISFDB] Parsed 2 books from HTML
+[2415/11408] ⏭️  The Dream Saga - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27415
+[ISFDB] Parsed 3 books from HTML
+[2416/11408] ⏭️  War of Two Worlds - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27418
+[ISFDB] Found tags: juvenile fantasy
+[ISFDB] Parsed 2 books from HTML
+[2417/11408] 🏷️  The Greenhouse Kids → fantasy (from: juvenile fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27419
+[ISFDB] Parsed 3 books from HTML
+[2418/11408] ⏭️  Flash Travelers - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27420
+[ISFDB] Parsed 3 books from HTML
+[2419/11408] ⏭️  Reckless Faith - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27422
+[ISFDB] Found tags: paranormal romance, young-adult fantasy
+[ISFDB] Parsed 3 books from HTML
+[2420/11408] 🏷️  Of Witches and Warlocks → romance (from: paranormal romance, young-adult fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27426
+[ISFDB] Found tags: military sf
+[ISFDB] Parsed 6 books from HTML
+[2421/11408] 🏷️  Soldier of the Legion → science-fiction (from: military sf)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27428
+[ISFDB] Parsed 2 books from HTML
+[2422/11408] ⏭️  The Adventures of Nosir Rag - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27430
+[ISFDB] Parsed 2 books from HTML
+[2423/11408] ⏭️  Temple of the Twelve - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27431
+[ISFDB] Parsed 2 books from HTML
+[2424/11408] ⏭️  Spirals of Destiny - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27435
+[ISFDB] Parsed 2 books from HTML
+[2425/11408] ⏭️  Coiree Guardians - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27436
+[ISFDB] Parsed 5 books from HTML
+[2426/11408] ⏭️  The Scandalous Misadventures of Hiram Grange - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27441
+[ISFDB] Parsed 3 books from HTML
+[2427/11408] ⏭️  Lost Souls - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27443
+[ISFDB] Found tags: historical fantasy
+[ISFDB] Parsed 2 books from HTML
+[2428/11408] 🏷️  Robin Hood (Roberson) → fantasy (from: historical fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27444
+[ISFDB] Parsed 3 books from HTML
+[2429/11408] ⏭️  Heirs of a Broken Land - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27449
+[ISFDB] Parsed 2 books from HTML
+[2430/11408] ⏭️  Eternal Vigilance - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27451
+[ISFDB] Found tags: young-adult fantasy, shapechangers, steampunk, teen fantasy, young adult steampunk, teen steampunk, historical fantasy
+[ISFDB] Parsed 4 books from HTML
+[2431/11408] 🏷️  Hunchback Assignments / Modo: Mission Clockwork → fantasy (from: young-adult fantasy, shapechangers, steampunk)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27452
+[ISFDB] Parsed 2 books from HTML
+[2432/11408] ⏭️  Canadian Chills - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27453
+[ISFDB] Found tags: fantasy
+[ISFDB] Parsed 3 books from HTML
+[2433/11408] 🏷️  Broken Well → fantasy (from: fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27455
+[ISFDB] Parsed 2 books from HTML
+[2434/11408] ⏭️  William Hope Hodgson's Night Lands - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27463
+[ISFDB] Found tags: juvenile fantasy, young-adult fantasy
+[ISFDB] Parsed 5 books from HTML
+[2435/11408] 🏷️  The Adventures of Jack Brenin → fantasy (from: juvenile fantasy, young-adult fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27468
+[ISFDB] Found tags: paranormal romance, urban fantasy, immortality
+[ISFDB] Parsed 4 books from HTML
+[2436/11408] 🏷️  Goblet of Eternal Youth / Immortally Sexy → romance (from: paranormal romance, urban fantasy, immortality)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27471
+[ISFDB] Found tags: time slip, electronic surgery, laser technology
+[ISFDB] Parsed 2 books from HTML
+[2437/11408] ⏭️  Dr. Heritage (tags: time slip, electronic surgery, laser technology) - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27472
+[ISFDB] Found tags: space opera
+[ISFDB] Parsed 3 books from HTML
+[2438/11408] 🏷️  The Fall of Worlds → science-fiction (from: space opera)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27473
+[ISFDB] Parsed 2 books from HTML
+[2439/11408] ⏭️  Bill Shannon - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27476
+[ISFDB] Parsed 2 books from HTML
+[2440/11408] ⏭️  Giftwish - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27477
+[ISFDB] Found tags: paranormal romance, urban fantasy
+[ISFDB] Parsed 6 books from HTML
+[2441/11408] 🏷️  Stormwalker → romance (from: paranormal romance, urban fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27479
+[ISFDB] Found tags: young-adult sf
+[ISFDB] Parsed 2 books from HTML
+[2442/11408] 🏷️  The Dancing Meteorite → science-fiction (from: young-adult sf)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27480
+[ISFDB] Parsed 3 books from HTML
+[2443/11408] ⏭️  The Berinfell Prophecies - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27482
+[ISFDB] Found tags: juvenile fantasy
+[ISFDB] Parsed 5 books from HTML
+[2444/11408] 🏷️  Erec Rex → fantasy (from: juvenile fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27483
+[ISFDB] Found tags: young-adult fantasy
+[ISFDB] Parsed 5 books from HTML
+[2445/11408] 🏷️  Strange Angels → fantasy (from: young-adult fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27486
+[ISFDB] Found tags: technothriller, into-movie
+[ISFDB] Parsed 2 books from HTML
+[2446/11408] 🏷️  Weapon → thriller (from: technothriller, into-movie)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27488
+[ISFDB] Found tags: science fiction, young-adult sf, paranormal romance, fantasy, young-adult fantasy
+[ISFDB] Parsed 3 books from HTML
+[2447/11408] 🏷️  Voices Saga → science-fiction (from: science fiction, young-adult sf, paranormal romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27489
+[ISFDB] Found tags: young-adult sf
+[ISFDB] Parsed 4 books from HTML
+[2448/11408] 🏷️  Weird World (Anthony Masters) → science-fiction (from: young-adult sf)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27493
+[ISFDB] Found tags: horror
+[ISFDB] Parsed 2 books from HTML
+[2449/11408] 🏷️  Paradigms of Suffering → horror (from: horror)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27494
+[ISFDB] Found tags: paranormal romance
+[ISFDB] Parsed 3 books from HTML
+[2450/11408] 🏷️  Monsters in Hollywood → romance (from: paranormal romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27496
+[ISFDB] Found tags: young-adult fantasy, paranormal romance
+[ISFDB] Parsed 4 books from HTML
+[2451/11408] 🏷️  Wyldcliffe Abbey School for Young Ladies → romance (from: young-adult fantasy, paranormal romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27498
+[ISFDB] Found tags: alternate history, world war ii
+[ISFDB] Parsed 6 books from HTML
+[2452/11408] 🏷️  The War That Came Early → science-fiction (from: alternate history, world war ii)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27500
+[ISFDB] Found tags: fantasy
+[ISFDB] Parsed 5 books from HTML
+[2453/11408] 🏷️  Laurian Pentology → fantasy (from: fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27502
+[ISFDB] Found tags: urban fantasy, esp
+[ISFDB] Parsed 2 books from HTML
+[2454/11408] 🏷️  Extrasensory Agents → fantasy (from: urban fantasy, esp)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27507
+[ISFDB] Found tags: fantasy, urban fantasy, magic, psychic ability, mystery, suspense
+[ISFDB] Parsed 7 books from HTML
+[2455/11408] 🏷️  Raine's Landing → fantasy (from: fantasy, urban fantasy, magic)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27509
+[ISFDB] Found tags: juvenile fantasy, zombies
+[ISFDB] Parsed 5 books from HTML
+[2456/11408] 🏷️  Tales from the Five Kingdoms → post-apocalyptic (from: juvenile fantasy, zombies)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27510
+[ISFDB] Found tags: zombies, post apocalypse
+[ISFDB] Parsed 4 books from HTML
+[2457/11408] 🏷️  Day by Day Armageddon → post-apocalyptic (from: zombies, post apocalypse)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27516
+[ISFDB] Parsed 3 books from HTML
+[2458/11408] ⏭️  Mariah Mundi - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27518
+[ISFDB] Found tags: young-adult, urban fantasy, cults
+[ISFDB] Parsed 3 books from HTML
+[2459/11408] 🏷️  Young Repairman Jack → fantasy (from: young-adult, urban fantasy, cults)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27520
+[ISFDB] Found tags: young-adult fantasy
+[ISFDB] Parsed 2 books from HTML
+[2460/11408] 🏷️  Wall and the Wing → fantasy (from: young-adult fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27522
+[ISFDB] Found tags: young-adult fantasy, teen fantasy
+[ISFDB] Parsed 3 books from HTML
+[2461/11408] 🏷️  Undine → fantasy (from: young-adult fantasy, teen fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27525
+[ISFDB] Parsed 3 books from HTML
+[2462/11408] ⏭️  Annals of Lystra - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27528
+[ISFDB] Parsed 2 books from HTML
+[2463/11408] ⏭️  Alluring Tales - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27530
+[ISFDB] Parsed 4 books from HTML
+[2464/11408] ⏭️  Underwhere - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27532
+[ISFDB] Parsed 6 books from HTML
+[2465/11408] ⏭️  An Awfully Beastly Business - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27534
+[ISFDB] Found tags: fantasy
+[ISFDB] Parsed 3 books from HTML
+[2466/11408] 🏷️  Krisalys Chronicles of Feyree → fantasy (from: fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27536
+[ISFDB] Found tags: werewolf, horror, urban fantasy
+[ISFDB] Parsed 6 books from HTML
+[2467/11408] 🏷️  Nick Lupo → horror (from: werewolf, horror, urban fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27539
+[ISFDB] Parsed 4 books from HTML
+[2468/11408] ⏭️  Dreamer's Cycle - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27541
+[ISFDB] Found tags: horror, science fiction, fantasy, c1 nanzan 962
+[ISFDB] Parsed 28 books from HTML
+[2469/11408] 🏷️  Madame Atomos → horror (from: horror, science fiction, fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27545
+[ISFDB] Parsed 3 books from HTML
+[2470/11408] ⏭️  A New Beginning to An Old Ending - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27546
+[ISFDB] Parsed 4 books from HTML
+[2471/11408] ⏭️  Auragole's Journey - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27547
+[ISFDB] Found tags: young-adult fantasy, time travel
+[ISFDB] Parsed 4 books from HTML
+[2472/11408] 🏷️  Cynthia's Attic → science-fiction (from: young-adult fantasy, time travel)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27548
+[ISFDB] Found tags: young-adult fantasy
+[ISFDB] Parsed 2 books from HTML
+[2473/11408] 🏷️  Faeries of Dreamdark → fantasy (from: young-adult fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27549
+[ISFDB] Parsed 3 books from HTML
+[2474/11408] ⏭️  Machines Unbound - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27550
+[ISFDB] Found tags: fantasy
+[ISFDB] Parsed 5 books from HTML
+[2475/11408] 🏷️  The DeChance Chronicles → fantasy (from: fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27552
+[ISFDB] Found tags: science fiction
+[ISFDB] Parsed 2 books from HTML
+[2476/11408] 🏷️  Sidney Malloy → science-fiction (from: science fiction)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27553
+[ISFDB] Found tags: young-adult fantasy, teen urban fantasy, urban fantasy, alchemy, teenagers, prophecies, siblings
+[ISFDB] Parsed 6 books from HTML
+[2477/11408] 🏷️  The Secrets of the Immortal Nicholas Flamel → fantasy (from: young-adult fantasy, teen urban fantasy, urban fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27556
+[ISFDB] Found tags: science fantasy
+[ISFDB] Parsed 3 books from HTML
+[2478/11408] 🏷️  The Saturation Point Saga → fantasy (from: science fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27560
+[ISFDB] Parsed 3 books from HTML
+[2479/11408] ⏭️  Panverse - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27561
+[ISFDB] Found tags: time-travel romance, time-travel fantasy, time travel
+[ISFDB] Parsed 2 books from HTML
+[2480/11408] 🏷️  Jane Austen Addict → science-fiction (from: time-travel romance, time-travel fantasy, time travel)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27562
+[ISFDB] Parsed 2 books from HTML
+[2481/11408] ⏭️  Bumper Sticker Shine - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27563
+[ISFDB] Found tags: juvenile fantasy, animal fantasy
+[ISFDB] Parsed 6 books from HTML
+[2482/11408] 🏷️  Omen of the Stars → fantasy (from: juvenile fantasy, animal fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27565
+[ISFDB] Parsed 3 books from HTML
+[2483/11408] ⏭️  The Mysterious Mr. Spines - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27569
+[ISFDB] Found tags: fantasy
+[ISFDB] Parsed 2 books from HTML
+[2484/11408] 🏷️  Rosie Lavine → fantasy (from: fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27570
+[ISFDB] Parsed 2 books from HTML
+[2485/11408] ⏭️  Channel Riders - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27571
+[ISFDB] Found tags: juvenile fantasy, magic
+[ISFDB] Parsed 4 books from HTML
+[2486/11408] 🏷️  Keyholders → fantasy (from: juvenile fantasy, magic)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27573
+[ISFDB] Parsed 2 books from HTML
+[2487/11408] ⏭️  The Adventures of Josiah Jones - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27577
+[ISFDB] Parsed 6 books from HTML
+[2488/11408] ⏭️  The Langsyne Chronicles - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27578
+[ISFDB] Found tags: time travel, juvenile fantasy, juvenile sf
+[ISFDB] Parsed 14 books from HTML
+[2489/11408] 🏷️  Canadian Flyer Adventures → science-fiction (from: time travel, juvenile fantasy, juvenile sf)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27579
+[ISFDB] Parsed 2 books from HTML
+[2490/11408] ⏭️  Chronicles of the Daemon Knights - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27580
+[ISFDB] Found tags: historical fantasy, vampires
+[ISFDB] Parsed 4 books from HTML
+[2491/11408] 🏷️  Morrigan's Brood → horror (from: historical fantasy, vampires)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27584
+[ISFDB] Parsed 4 books from HTML
+[2492/11408] ⏭️  Faithwalker - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27587
+[ISFDB] Parsed 2 books from HTML
+[2493/11408] ⏭️  The Selected Stories of Tanith Lee - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27588
+[ISFDB] Found tags: psychic ability, ghosts
+[ISFDB] Parsed 10 books from HTML
+[2494/11408] 🏷️  Melanie Middleton / Tradd Street → horror (from: psychic ability, ghosts)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27589
+[ISFDB] Found tags: paranormal mystery, supernatural, thriller
+[ISFDB] Parsed 4 books from HTML
+[2495/11408] 🏷️  Sherry Moore → thriller (from: paranormal mystery, supernatural, thriller)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27590
+[ISFDB] Found tags: paranormal romance, werewolves
+[ISFDB] Parsed 3 books from HTML
+[2496/11408] 🏷️  Awaiting the Moon → horror (from: paranormal romance, werewolves)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27591
+[ISFDB] Parsed 4 books from HTML
+[2497/11408] ⏭️  Dreamer's Forest - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27594
+[ISFDB] Parsed 2 books from HTML
+[2498/11408] ⏭️  Angel Light - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27595
+[ISFDB] Parsed 4 books from HTML
+[2499/11408] ⏭️  Adventures in the Unknown - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27596
+[ISFDB] Found tags: science fiction
+[ISFDB] Parsed 7 books from HTML
+[2500/11408] 🏷️  Merculians → science-fiction (from: science fiction)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27597
+[ISFDB] Parsed 2 books from HTML
+[2501/11408] ⏭️  Three-Dimensional Tales - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27598
+[ISFDB] Parsed 3 books from HTML
+[2502/11408] ⏭️  The Black or White Chronicles - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27600
+[ISFDB] Found tags: fantasy
+[ISFDB] Parsed 3 books from HTML
+[2503/11408] 🏷️  Dragonbound (Carl Miller) → fantasy (from: fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27601
+[ISFDB] Found tags: time-travel romance
+[ISFDB] Parsed 2 books from HTML
+[2504/11408] 🏷️  Beyond the Threshold → romance (from: time-travel romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27602
+[ISFDB] Found tags: paranormal suspense
+[ISFDB] Parsed 3 books from HTML
+[2505/11408] 🏷️  Charlie Trudeau → thriller (from: paranormal suspense)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27603
+[ISFDB] Parsed 2 books from HTML
+[2506/11408] ⏭️  Squed - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27605
+[ISFDB] Found tags: fantasy
+[ISFDB] Parsed 2 books from HTML
+[2507/11408] 🏷️  Caladon → fantasy (from: fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27607
+[ISFDB] Found tags: lesbian vampire
+[ISFDB] Parsed 2 books from HTML
+[2508/11408] ⏭️  Virago (tags: lesbian vampire) - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27609
+[ISFDB] Found tags: young-adult fantasy, time travel
+[ISFDB] Parsed 3 books from HTML
+[2509/11408] 🏷️  Navigator → science-fiction (from: young-adult fantasy, time travel)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27614
+[ISFDB] Found tags: young-adult fantasy
+[ISFDB] Parsed 6 books from HTML
+[2510/11408] 🏷️  Oz Chronicles → fantasy (from: young-adult fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27615
+[ISFDB] Found tags: fantasy
+[ISFDB] Parsed 4 books from HTML
+[2511/11408] 🏷️  Rising Dawn Saga → fantasy (from: fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27616
+[ISFDB] Found tags: fantasy
+[ISFDB] Parsed 3 books from HTML
+[2512/11408] 🏷️  Fires in Eden → fantasy (from: fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27619
+[ISFDB] Found tags: young-adult sf
+[ISFDB] Parsed 4 books from HTML
+[2513/11408] 🏷️  Robin North → science-fiction (from: young-adult sf)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27621
+[ISFDB] Parsed 2 books from HTML
+[2514/11408] ⏭️  Grenfell & Wright - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27624
+[ISFDB] Parsed 4 books from HTML
+[2515/11408] ⏭️  Fantastic Fiction of H. Rider Haggard - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27627
+[ISFDB] Found tags: adventure, near future, post apocalypse, science fiction, quest
+[ISFDB] Parsed 3 books from HTML
+[2516/11408] 🏷️  Roadblaster → science-fiction (from: adventure, near future, post apocalypse)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27628
+[ISFDB] Found tags: fantasy
+[ISFDB] Parsed 5 books from HTML
+[2517/11408] 🏷️  Lightbringer → fantasy (from: fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27629
+[ISFDB] Found tags: fantasy
+[ISFDB] Parsed 2 books from HTML
+[2518/11408] 🏷️  Legends of Shannara → fantasy (from: fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27630
+[ISFDB] Found tags: horror
+[ISFDB] Parsed 2 books from HTML
+[2519/11408] 🏷️  Lehorn's Hollow → horror (from: horror)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27632
+[ISFDB] Parsed 2 books from HTML
+[2520/11408] ⏭️  The Reader's Bloch - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27640
+[ISFDB] Found tags: juvenile fantasy, animal fantasy, mice
+[ISFDB] Parsed 2 books from HTML
+[2521/11408] 🏷️  The Gruffalo → fantasy (from: juvenile fantasy, animal fantasy, mice)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27642
+[ISFDB] Found tags: young-adult animal fantasy
+[ISFDB] Parsed 2 books from HTML
+[2522/11408] 🏷️  Tooth and Claw → fantasy (from: young-adult animal fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27643
+[ISFDB] Parsed 3 books from HTML
+[2523/11408] ⏭️  Desert Eden - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27644
+[ISFDB] Found tags: science fiction
+[ISFDB] Parsed 3 books from HTML
+[2524/11408] 🏷️  Threshold (Janet and Chris Morris) → science-fiction (from: science fiction)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27645
+[ISFDB] Parsed 4 books from HTML
+[2525/11408] ⏭️  Tempus - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27650
+[ISFDB] Found tags: light novel
+[ISFDB] Parsed 2 books from HTML
+[2526/11408] ⏭️  涼宮ハルヒ (Haruhi Suzumiya) (tags: light novel) - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27653
+[ISFDB] Found tags: young-adult fantasy, historical fantasy, young-adult, fantasy
+[ISFDB] Parsed 2 books from HTML
+[2527/11408] 🏷️  The Red Necklace → fantasy (from: young-adult fantasy, historical fantasy, young-adult)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27655
+[ISFDB] Found tags: young-adult sf, single planet, prison world, only humans, artificial intelligence
+[ISFDB] Parsed 2 books from HTML
+[2528/11408] 🏷️  Incarceron → science-fiction (from: young-adult sf, single planet, prison world)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27656
+[ISFDB] Found tags: steampunk, young-adult fantasy, siblings, demons, rescue, secret societies, shapeshifter, teenagers, orphan
+[ISFDB] Parsed 3 books from HTML
+[2529/11408] 🏷️  The Infernal Devices → fantasy (from: steampunk, young-adult fantasy, siblings)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27658
+[ISFDB] Found tags: paranormal romance, virtual reality
+[ISFDB] Parsed 3 books from HTML
+[2530/11408] 🏷️  Perfect Heroes → romance (from: paranormal romance, virtual reality)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27659
+[ISFDB] Found tags: young-adult fantasy, young adult, juvenile fantasy, motherhood, price, trading, forest, village, social commentary, paranormal powers, blindness, healing, xenophobia, euthanasia, library, dystopia, into-movie
+[ISFDB] Parsed 4 books from HTML
+[2531/11408] 🏷️  The Giver → fantasy (from: young-adult fantasy, young adult, juvenile fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27660
+[ISFDB] Found tags: young-adult fantasy, juvenile fantasy
+[ISFDB] Parsed 4 books from HTML
+[2532/11408] 🏷️  The Norumbegan Quartet → fantasy (from: young-adult fantasy, juvenile fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27661
+[ISFDB] Found tags: fantasy, young-adult fantasy
+[ISFDB] Parsed 3 books from HTML
+[2533/11408] 🏷️  Berren / The Thief-Taker's Apprentice → fantasy (from: fantasy, young-adult fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27662
+[ISFDB] Found tags: historical fantasy, parallel universe, alternate history, adventure, time travel
+[ISFDB] Parsed 5 books from HTML
+[2534/11408] 🏷️  Bright Empires → science-fiction (from: historical fantasy, parallel universe, alternate history)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27663
+[ISFDB] Found tags: historical fantasy
+[ISFDB] Parsed 3 books from HTML
+[2535/11408] 🏷️  The Ten Thousand / The Macht → fantasy (from: historical fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27664
+[ISFDB] Parsed 3 books from HTML
+[2536/11408] ⏭️  The Waking - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27666
+[ISFDB] Found tags: young-adult fantasy
+[ISFDB] Parsed 2 books from HTML
+[2537/11408] 🏷️  Delcroix Academy → fantasy (from: young-adult fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27670
+[ISFDB] Found tags: gay, paranormal mystery, paranormal romance, urban fantasy, horror, ghosts
+[ISFDB] Parsed 9 books from HTML
+[2538/11408] 🏷️  Bay City Paranormal Investigations → horror (from: gay, paranormal mystery, paranormal romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27671
+[ISFDB] Found tags: horror, paranormal mystery
+[ISFDB] Parsed 3 books from HTML
+[2539/11408] 🏷️  Campaign Trilogy → horror (from: horror, paranormal mystery)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27672
+[ISFDB] Found tags: juvenile fantasy
+[ISFDB] Parsed 4 books from HTML
+[2540/11408] 🏷️  Faeries' Promise → fantasy (from: juvenile fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27674
+[ISFDB] Found tags: science fiction, mmorpg, ai bootstrap, video games, computer games, hackers
+[ISFDB] Parsed 2 books from HTML
+[2541/11408] 🏷️  Omnitopia → science-fiction (from: science fiction, mmorpg, ai bootstrap)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27675
+[ISFDB] Found tags: young-adult fantasy, juvenile fantasy
+[ISFDB] Parsed 4 books from HTML
+[2542/11408] 🏷️  The Seven Realms → fantasy (from: young-adult fantasy, juvenile fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27677
+[ISFDB] Found tags: juvenile sf, time travel
+[ISFDB] Parsed 3 books from HTML
+[2543/11408] 🏷️  Jack Christie Adventures → science-fiction (from: juvenile sf, time travel)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27679
+[ISFDB] Parsed 2 books from HTML
+[2544/11408] ⏭️  Babes on Brooms - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27680
+[ISFDB] Found tags: young-adult fantasy
+[ISFDB] Parsed 2 books from HTML
+[2545/11408] 🏷️  Moon Riders → fantasy (from: young-adult fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27681
+[ISFDB] Found tags: young-adult fantasy
+[ISFDB] Parsed 3 books from HTML
+[2546/11408] 🏷️  Sylvie → fantasy (from: young-adult fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27682
+[ISFDB] Found tags: fantasy, steampunk, alternate history
+[ISFDB] Parsed 4 books from HTML
+[2547/11408] 🏷️  New Amsterdam → science-fiction (from: fantasy, steampunk, alternate history)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27684
+[ISFDB] Found tags: time travel, paranormal romance, vampires
+[ISFDB] Parsed 4 books from HTML
+[2548/11408] 🏷️  DaVinci Time Travel → horror (from: time travel, paranormal romance, vampires)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27686
+[ISFDB] Found tags: vampires, young-adult fantasy, werewolf, christian fantasy
+[ISFDB] Parsed 2 books from HTML
+[2549/11408] 🏷️  Ceese → horror (from: vampires, young-adult fantasy, werewolf)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27688
+[ISFDB] Found tags: christian fantasy, time travel
+[ISFDB] Parsed 7 books from HTML
+[2550/11408] 🏷️  The Gates of Heaven → science-fiction (from: christian fantasy, time travel)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27691
+[ISFDB] Found tags: paranormal romance
+[ISFDB] Parsed 3 books from HTML
+[2551/11408] 🏷️  Immortal Sheikhs → romance (from: paranormal romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27694
+[ISFDB] Found tags: science fiction, time travel, parallel universe
+[ISFDB] Parsed 12 books from HTML
+[2552/11408] 🏷️  Iris Wildthyme → science-fiction (from: science fiction, time travel, parallel universe)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27696
+[ISFDB] Found tags: paranormal romance
+[ISFDB] Parsed 4 books from HTML
+[2553/11408] 🏷️  Sins → romance (from: paranormal romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27698
+[ISFDB] Found tags: juvenile fantasy
+[ISFDB] Parsed 3 books from HTML
+[2554/11408] 🏷️  The Joy of Spooking → fantasy (from: juvenile fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27699
+[ISFDB] Found tags: fallen angels, paranormal romance
+[ISFDB] Parsed 4 books from HTML
+[2555/11408] 🏷️  Prometheus Project → romance (from: fallen angels, paranormal romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27704
+[ISFDB] Found tags: young-adult fantasy
+[ISFDB] Parsed 3 books from HTML
+[2556/11408] 🏷️  Agora → fantasy (from: young-adult fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27705
+[ISFDB] Found tags: juvenile fantasy, greek mythology
+[ISFDB] Parsed 29 books from HTML
+[2557/11408] 🏷️  Goddess Girls → fantasy (from: juvenile fantasy, greek mythology)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27707
+[ISFDB] Found tags: fantasy, superhero
+[ISFDB] Parsed 3 books from HTML
+[2558/11408] 🏷️  To Hell and Back → fantasy (from: fantasy, superhero)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27709
+[ISFDB] Found tags: young-adult fantasy
+[ISFDB] Parsed 2 books from HTML
+[2559/11408] 🏷️  Aminah → fantasy (from: young-adult fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27711
+[ISFDB] Found tags: juvenile fantasy
+[ISFDB] Parsed 10 books from HTML
+[2560/11408] 🏷️  Silver Dolphins → fantasy (from: juvenile fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27714
+[ISFDB] Found tags: juvenile fantasy
+[ISFDB] Parsed 20 books from HTML
+[2561/11408] 🏷️  Candy Fairies → fantasy (from: juvenile fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27718
+[ISFDB] Parsed 6 books from HTML
+[2562/11408] ⏭️  The Asimov Chronicles (Ace) - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27719
+[ISFDB] Parsed 2 books from HTML
+[2563/11408] ⏭️  The Asimov Chronicles (UK) - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27720
+[ISFDB] Parsed 11 books from HTML
+[2564/11408] ⏭️  The Asimov Chronicles - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27721
+[ISFDB] Found tags: young-adult horror
+[ISFDB] Parsed 4 books from HTML
+[2565/11408] 🏷️  Camp Crystal Lake → horror (from: young-adult horror)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27722
+[ISFDB] Found tags: paranormal romance
+[ISFDB] Parsed 3 books from HTML
+[2566/11408] 🏷️  The Being Trilogy → romance (from: paranormal romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27724
+[ISFDB] Found tags: historical fantasy, fantasy romance, paranormal romance, zombies
+[ISFDB] Parsed 4 books from HTML
+[2567/11408] 🏷️  The Blades of the Rose → romance (from: historical fantasy, fantasy romance, paranormal romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27726
+[ISFDB] Parsed 5 books from HTML
+[2568/11408] ⏭️  1-800-Where-R-You - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27727
+[ISFDB] Found tags: historical fantasy
+[ISFDB] Parsed 2 books from HTML
+[2569/11408] 🏷️  Cormac → fantasy (from: historical fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27728
+[ISFDB] Parsed 3 books from HTML
+[2570/11408] ⏭️  Mountain Made of Light - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27729
+[ISFDB] Found tags: christian fantasy
+[ISFDB] Parsed 3 books from HTML
+[2571/11408] 🏷️  Children in the Night → fantasy (from: christian fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27731
+[ISFDB] Found tags: young-adult historical fantasy
+[ISFDB] Parsed 4 books from HTML
+[2572/11408] 🏷️  Destiny's Path / Warrior Princess → fantasy (from: young-adult historical fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27733
+[ISFDB] Found tags: fantasy, pirates, vampires
+[ISFDB] Parsed 38 books from HTML
+[2573/11408] 🏷️  Pathfinder Tales → horror (from: fantasy, pirates, vampires)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27735
+[ISFDB] Found tags: historical fantasy, vampires, fantasy
+[ISFDB] Parsed 5 books from HTML
+[2574/11408] 🏷️  The Danilov Quintet → fantasy (from: historical fantasy, vampires, fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27736
+[ISFDB] Found tags: urban fantasy, paranormal romance, vampires, lesbian
+[ISFDB] Parsed 3 books from HTML
+[2575/11408] 🏷️  Kassandra Lyall Preternatural Investigator → horror (from: urban fantasy, paranormal romance, vampires)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27737
+[ISFDB] Found tags: fantasy
+[ISFDB] Parsed 3 books from HTML
+[2576/11408] 🏷️  The Aeons' Gate → fantasy (from: fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27738
+[ISFDB] Found tags: fantasy, steampunk, industrial revolution, interdimensional travel, magic, orphan, quest, wizards, humblebundle
+[ISFDB] Parsed 3 books from HTML
+[2577/11408] 🏷️  Spiritwalker → fantasy (from: fantasy, steampunk, industrial revolution)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27740
+[ISFDB] Found tags: juvenile fantasy, young-adult fantasy, fairy tale, brothers grimm, through the looking glass, gateway fantasy, fatherhood
+[ISFDB] Parsed 3 books from HTML
+[2578/11408] 🏷️  Mirrorworld / Reckless → fantasy (from: juvenile fantasy, young-adult fantasy, fairy tale)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27741
+[ISFDB] Found tags: urban fantasy
+[ISFDB] Parsed 2 books from HTML
+[2579/11408] 🏷️  The Underworld Cycle → fantasy (from: urban fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27742
+[ISFDB] Found tags: young-adult fantasy, magic, historical fantasy, fantasy, witches, fantasy romance, young-adult, young adult historical fantasy, regency with magic, historical romance, young-adult romance
+[ISFDB] Parsed 3 books from HTML
+[2580/11408] 🏷️  Leland Sisters → fantasy (from: young-adult fantasy, magic, historical fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27743
+[ISFDB] Found tags: vampires, urban fantasy, young-adult fantasy
+[ISFDB] Parsed 3 books from HTML
+[2581/11408] 🏷️  Night Runner → fantasy (from: vampires, urban fantasy, young-adult fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27746
+[ISFDB] Found tags: historical fantasy, vampires
+[ISFDB] Parsed 2 books from HTML
+[2582/11408] 🏷️  Millennial → horror (from: historical fantasy, vampires)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27747
+[ISFDB] Found tags: young-adult fantasy
+[ISFDB] Parsed 3 books from HTML
+[2583/11408] 🏷️  Immortal Beloved → fantasy (from: young-adult fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27748
+[ISFDB] Found tags: paranormal romance, vampires, urban fantasy, zombies, bisexual, gay erotica
+[ISFDB] Parsed 5 books from HTML
+[2584/11408] 🏷️  Shadowfae Chronicles → horror (from: paranormal romance, vampires, urban fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27749
+[ISFDB] Found tags: science fiction, space mission, europa
+[ISFDB] Parsed 3 books from HTML
+[2585/11408] 🏷️  Europa → science-fiction (from: science fiction, space mission, europa)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27750
+[ISFDB] Found tags: time-travel romance
+[ISFDB] Parsed 4 books from HTML
+[2586/11408] 🏷️  The Dragonfly Chronicles → romance (from: time-travel romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27754
+[ISFDB] Found tags: fantasy, science fantasy, portal-gates, psy powers
+[ISFDB] Parsed 3 books from HTML
+[2587/11408] 🏷️  The Wall of Night → fantasy (from: fantasy, science fantasy, portal-gates)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27756
+[ISFDB] Found tags: humblebundle
+[ISFDB] Parsed 2 books from HTML
+[2588/11408] ⏭️  Zak Cato (tags: humblebundle) - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27760
+[ISFDB] Found tags: fantasy
+[ISFDB] Parsed 4 books from HTML
+[2589/11408] 🏷️  Fable → fantasy (from: fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27764
+[ISFDB] Found tags: young-adult fantasy
+[ISFDB] Parsed 3 books from HTML
+[2590/11408] 🏷️  Phoenix Rising Trilogy → fantasy (from: young-adult fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27765
+[ISFDB] Found tags: young-adult fantasy
+[ISFDB] Parsed 2 books from HTML
+[2591/11408] 🏷️  Odoursin → fantasy (from: young-adult fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27766
+[ISFDB] Found tags: futuristic romance, paranormal romance
+[ISFDB] Parsed 2 books from HTML
+[2592/11408] 🏷️  True → romance (from: futuristic romance, paranormal romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27767
+[ISFDB] Found tags: juvenile sf, young-adult fantasy, teen science fiction
+[ISFDB] Parsed 9 books from HTML
+[2593/11408] 🏷️  H. I. V. E. → science-fiction (from: juvenile sf, young-adult fantasy, teen science fiction)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27768
+[ISFDB] Parsed 3 books from HTML
+[2594/11408] ⏭️  Triskellion - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27769
+[ISFDB] Found tags: urban fantasy, vampires, fae
+[ISFDB] Parsed 5 books from HTML
+[2595/11408] 🏷️  Indigo Court → fantasy (from: urban fantasy, vampires, fae)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27771
+[ISFDB] Parsed 9 books from HTML
+[2596/11408] ⏭️  Sexy Beast - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27773
+[ISFDB] Parsed 2 books from HTML
+[2597/11408] ⏭️  Skiffy - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27774
+[ISFDB] Found tags: young-adult fantasy, ghosts
+[ISFDB] Parsed 5 books from HTML
+[2598/11408] 🏷️  Skeleton Creek → horror (from: young-adult fantasy, ghosts)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27775
+[ISFDB] Parsed 3 books from HTML
+[2599/11408] ⏭️  Abolethic Sovereignty - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27776
+[ISFDB] Found tags: fantasy, freedom, war, self-discovery
+[ISFDB] Parsed 3 books from HTML
+[2600/11408] 🏷️  The Grassland Trilogy → fantasy (from: fantasy, freedom, war)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27778
+[ISFDB] Found tags: fantasy
+[ISFDB] Parsed 3 books from HTML
+[2601/11408] 🏷️  Tales of Starlight (adult branch) → fantasy (from: fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27780
+[ISFDB] Found tags: science fiction
+[ISFDB] Parsed 3 books from HTML
+[2602/11408] 🏷️  Path of the Eldar → science-fiction (from: science fiction)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27783
+[ISFDB] Found tags: young-adult fantasy
+[ISFDB] Parsed 2 books from HTML
+[2603/11408] 🏷️  Winter of Enchantment → fantasy (from: young-adult fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27789
+[ISFDB] Found tags: historical fantasy
+[ISFDB] Parsed 5 books from HTML
+[2604/11408] 🏷️  Voyages of Captain Jesamiah Acorn → fantasy (from: historical fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27791
+[ISFDB] Found tags: young-adult horror
+[ISFDB] Parsed 4 books from HTML
+[2605/11408] 🏷️  The Saga of Larten Crepsley → horror (from: young-adult horror)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27796
+[ISFDB] Found tags: young-adult fantasy, juvenile fantasy
+[ISFDB] Parsed 2 books from HTML
+[2606/11408] 🏷️  Ashenpeake Island → fantasy (from: young-adult fantasy, juvenile fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27799
+[ISFDB] Found tags: paranormal romance
+[ISFDB] Parsed 2 books from HTML
+[2607/11408] 🏷️  Warrior Angel → romance (from: paranormal romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27800
+[ISFDB] Found tags: young-adult fantasy, angels, into-movie, into-tv, supernatural, love, reincarnation, historical fantasy
+[ISFDB] Parsed 5 books from HTML
+[2608/11408] 🏷️  Fallen → fantasy (from: young-adult fantasy, angels, into-movie)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27801
+[ISFDB] Found tags: young-adult fantasy
+[ISFDB] Parsed 3 books from HTML
+[2609/11408] 🏷️  The Last Descendants → fantasy (from: young-adult fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27802
+[ISFDB] Found tags: juvenile fantasy
+[ISFDB] Parsed 2 books from HTML
+[2610/11408] 🏷️  Candle Man → fantasy (from: juvenile fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27803
+[ISFDB] Found tags: juvenile fantasy
+[ISFDB] Parsed 2 books from HTML
+[2611/11408] 🏷️  Terry, the Torus and the Tumblestones → fantasy (from: juvenile fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27805
+[ISFDB] Found tags: christian fantasy
+[ISFDB] Parsed 3 books from HTML
+[2612/11408] 🏷️  Nephilim → fantasy (from: christian fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27806
+[ISFDB] Found tags: juvenile fantasy
+[ISFDB] Parsed 4 books from HTML
+[2613/11408] 🏷️  Goddesses → fantasy (from: juvenile fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27808
+[ISFDB] Found tags: zombies
+[ISFDB] Parsed 4 books from HTML
+[2614/11408] 🏷️  Eden (Tony Monchinski) → post-apocalyptic (from: zombies)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27810
+[ISFDB] Found tags: vampires, young-adult fantasy
+[ISFDB] Parsed 5 books from HTML
+[2615/11408] 🏷️  Vamped → horror (from: vampires, young-adult fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27812
+[ISFDB] Found tags: urban fantasy, vampires
+[ISFDB] Parsed 2 books from HTML
+[2616/11408] 🏷️  Alexandra Sabian → horror (from: urban fantasy, vampires)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27814
+[ISFDB] Found tags: young-adult fantasy, juvenile fantasy
+[ISFDB] Parsed 2 books from HTML
+[2617/11408] 🏷️  Storm Eden → fantasy (from: young-adult fantasy, juvenile fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27815
+[ISFDB] Parsed 2 books from HTML
+[2618/11408] ⏭️  Harmony of the Othar - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27818
+[ISFDB] Parsed 3 books from HTML
+[2619/11408] ⏭️  The Light-Years Trilogy - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27819
+[ISFDB] Found tags: young-adult sf
+[ISFDB] Parsed 2 books from HTML
+[2620/11408] 🏷️  The Sky Inside → science-fiction (from: young-adult sf)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27821
+[ISFDB] Found tags: urban fantasy
+[ISFDB] Parsed 4 books from HTML
+[2621/11408] 🏷️  Charlie Madigan → fantasy (from: urban fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27823
+[ISFDB] Found tags: adventure and adventurers, immortality, magic, time travel, juvenile fantasy, chocolate, mummies, magic tricks
+[ISFDB] Parsed 5 books from HTML
+[2622/11408] 🏷️  Secret Series → fantasy (from: adventure and adventurers, immortality, magic)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27824
+[ISFDB] Found tags: werewolf, paranormal romance, vampires
+[ISFDB] Parsed 15 books from HTML
+[2623/11408] 🏷️  The Pack (Karen Whiddon) → horror (from: werewolf, paranormal romance, vampires)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27825
+[ISFDB] Found tags: young-adult fantasy
+[ISFDB] Parsed 3 books from HTML
+[2624/11408] 🏷️  Carver's World → fantasy (from: young-adult fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27826
+[ISFDB] Found tags: historical fantasy
+[ISFDB] Parsed 3 books from HTML
+[2625/11408] 🏷️  Knights Templar → fantasy (from: historical fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27827
+[ISFDB] Found tags: young-adult time-travel
+[ISFDB] Parsed 3 books from HTML
+[2626/11408] ⏭️  The Golden Hour (tags: young-adult time-travel) - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27830
+[ISFDB] Parsed 2 books from HTML
+[2627/11408] ⏭️  Frank Balenger - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27831
+[ISFDB] Parsed 3 books from HTML
+[2628/11408] ⏭️  Nathaniel Gye, Paranormal Investigator - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27835
+[ISFDB] Parsed 12 books from HTML
+[2629/11408] ⏭️  The WisCon Chronicles - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27843
+[ISFDB] Found tags: paranormal romance
+[ISFDB] Parsed 9 books from HTML
+[2630/11408] 🏷️  Offspring (Jaime Rush) → romance (from: paranormal romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27844
+[ISFDB] Found tags: thriller, horror, aliens, time travel, parallel universe
+[ISFDB] Parsed 14 books from HTML
+[2631/11408] 🏷️  Event Group → science-fiction (from: thriller, horror, aliens)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27845
+[ISFDB] Found tags: science fiction
+[ISFDB] Parsed 4 books from HTML
+[2632/11408] 🏷️  The Spiral Arm → science-fiction (from: science fiction)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27852
+[ISFDB] Parsed 30 books from HTML
+[2633/11408] ⏭️  Scheherazade - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27853
+[ISFDB] Found tags: horror
+[ISFDB] Parsed 3 books from HTML
+[2634/11408] 🏷️  Straw Men → horror (from: horror)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27854
+[ISFDB] Found tags: steampunk
+[ISFDB] Parsed 3 books from HTML
+[2635/11408] 🏷️  The Glass Books of the Dream Eaters → science-fiction (from: steampunk)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27855
+[ISFDB] Parsed 2 books from HTML
+[2636/11408] ⏭️  Soledad O'Roark - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27856
+[ISFDB] Found tags: fantasy
+[ISFDB] Parsed 4 books from HTML
+[2637/11408] 🏷️  The Milhavior Chronicles → fantasy (from: fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27857
+[ISFDB] Found tags: fantasy
+[ISFDB] Parsed 3 books from HTML
+[2638/11408] 🏷️  Alaskan Royal Family → fantasy (from: fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27863
+[ISFDB] Found tags: historical fantasy, religious fantasy
+[ISFDB] Parsed 3 books from HTML
+[2639/11408] 🏷️  Tahn Dorn → fantasy (from: historical fantasy, religious fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27864
+[ISFDB] Parsed 2 books from HTML
+[2640/11408] ⏭️  Vandhaqa - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27872
+[ISFDB] Found tags: librivox, fantasy, afterlife, charon, internet archive
+[ISFDB] Parsed 4 books from HTML
+[2641/11408] 🏷️  Associated Shades → fantasy (from: librivox, fantasy, afterlife)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27873
+[ISFDB] Found tags: young-adult fantasy
+[ISFDB] Parsed 2 books from HTML
+[2642/11408] 🏷️  The Serpent's Egg Trilogy → fantasy (from: young-adult fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27875
+[ISFDB] Parsed 3 books from HTML
+[2643/11408] ⏭️  The Champion Chronicles - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27880
+[ISFDB] Found tags: time travel
+[ISFDB] Parsed 3 books from HTML
+[2644/11408] 🏷️  Carre�a → science-fiction (from: time travel)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27887
+[ISFDB] Found tags: near future, superpowers
+[ISFDB] Parsed 2 books from HTML
+[2645/11408] 🏷️  Stringers → science-fiction (from: near future, superpowers)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27889
+[ISFDB] Found tags: young-adult sf, superheroes, superpowers
+[ISFDB] Parsed 2 books from HTML
+[2646/11408] 🏷️  PsiScouts → science-fiction (from: young-adult sf, superheroes, superpowers)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27890
+[ISFDB] Found tags: horror
+[ISFDB] Parsed 3 books from HTML
+[2647/11408] 🏷️  Watchers (William Meikle) → horror (from: horror)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27893
+[ISFDB] Parsed 25 books from HTML
+[2648/11408] ⏭️  Cognitive Mapping - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27896
+[ISFDB] Found tags: juvenile fantasy
+[ISFDB] Parsed 4 books from HTML
+[2649/11408] 🏷️  Adventures in Odyssey Passages → fantasy (from: juvenile fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27898
+[ISFDB] Found tags: science fiction
+[ISFDB] Parsed 4 books from HTML
+[2650/11408] 🏷️  The Blessings of Gaia → science-fiction (from: science fiction)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27899
+[ISFDB] Found tags: young-adult fantasy, juvenile fantasy
+[ISFDB] Parsed 2 books from HTML
+[2651/11408] 🏷️  Noor → fantasy (from: young-adult fantasy, juvenile fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27900
+[ISFDB] Found tags: horror, private investigators, genetic engineering, zombies
+[ISFDB] Parsed 6 books from HTML
+[2652/11408] 🏷️  The Jake Helman Files → horror (from: horror, private investigators, genetic engineering)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27901
+[ISFDB] Found tags: occult, african speculative fiction
+[ISFDB] Parsed 2 books from HTML
+[2653/11408] 🏷️  Books of Khepera → horror (from: occult, african speculative fiction)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27903
+[ISFDB] Parsed 5 books from HTML
+[2654/11408] ⏭️  Sacred Books - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27904
+[ISFDB] Found tags: paranormal mystery, ghosts
+[ISFDB] Parsed 10 books from HTML
+[2655/11408] 🏷️  Bailey Ruth Raeburn → horror (from: paranormal mystery, ghosts)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27905
+[ISFDB] Found tags: young-adult fantasy, wizards, merlin, magic, avalon, juvenile fantasy, conduct of life, philosophy
+[ISFDB] Parsed 11 books from HTML
+[2656/11408] 🏷️  Avalon / Merlin (T. A. Barron) → fantasy (from: young-adult fantasy, wizards, merlin)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27906
+[ISFDB] Found tags: urban fantasy
+[ISFDB] Parsed 2 books from HTML
+[2657/11408] 🏷️  Novels of Haven / Kita Nekai → fantasy (from: urban fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27907
+[ISFDB] Found tags: urban fantasy
+[ISFDB] Parsed 7 books from HTML
+[2658/11408] 🏷️  Alex Craft → fantasy (from: urban fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27909
+[ISFDB] Found tags: paranormal romance
+[ISFDB] Parsed 3 books from HTML
+[2659/11408] 🏷️  Mythica → romance (from: paranormal romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27910
+[ISFDB] Parsed 4 books from HTML
+[2660/11408] ⏭️  Meet the Kreeps - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27913
+[ISFDB] Parsed 2 books from HTML
+[2661/11408] ⏭️  Sailors - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27915
+[ISFDB] Found tags: juvenile fantasy, young-adult fantasy
+[ISFDB] Parsed 3 books from HTML
+[2662/11408] 🏷️  The Healing Wars → fantasy (from: juvenile fantasy, young-adult fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27917
+[ISFDB] Parsed 3 books from HTML
+[2663/11408] ⏭️  Revivors - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27920
+[ISFDB] Parsed 2 books from HTML
+[2664/11408] ⏭️  The Order of Ethyrea - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27922
+[ISFDB] Found tags: juvenile fantasy, hera, giants, roman mythology, gaia, camps, greek mytholoigy, amnesia, mars, gorgons, gaea, death, greek mythology, monsters, prophecies, military camps, juno, thanatos, quest, demigods
+[ISFDB] Parsed 5 books from HTML
+[2665/11408] 🏷️  The Heroes of Olympus → fantasy (from: juvenile fantasy, hera, giants)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27923
+[ISFDB] Found tags: fantasy
+[ISFDB] Parsed 4 books from HTML
+[2666/11408] 🏷️  Forgotten Realms: Neverwinter → fantasy (from: fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27924
+[ISFDB] Found tags: urban fantasy, gods
+[ISFDB] Parsed 12 books from HTML
+[2667/11408] 🏷️  Sandman Slim → fantasy (from: urban fantasy, gods)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27926
+[ISFDB] Found tags: superhero, young-adult fantasy
+[ISFDB] Parsed 2 books from HTML
+[2668/11408] 🏷️  Hottie → fantasy (from: superhero, young-adult fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27927
+[ISFDB] Found tags: angels, young-adult fantasy
+[ISFDB] Parsed 3 books from HTML
+[2669/11408] 🏷️  Angel / Alex and Willow → fantasy (from: angels, young-adult fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27928
+[ISFDB] Found tags: young-adult horror, historical fantasy, steampunk
+[ISFDB] Parsed 4 books from HTML
+[2670/11408] 🏷️  The Monstrumologist → science-fiction (from: young-adult horror, historical fantasy, steampunk)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27929
+[ISFDB] Found tags: young-adult fantasy, into-movie, supernatural, psychic ability, love, south carolina
+[ISFDB] Parsed 4 books from HTML
+[2671/11408] 🏷️  Caster Chronicles / Beautiful Creatures → fantasy (from: young-adult fantasy, into-movie, supernatural)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27930
+[ISFDB] Found tags: young adult
+[ISFDB] Parsed 3 books from HTML
+[2672/11408] ⏭️  The Seems (tags: young adult) - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27932
+[ISFDB] Found tags: young-adult fantasy
+[ISFDB] Parsed 2 books from HTML
+[2673/11408] 🏷️  Troublesome Angels → fantasy (from: young-adult fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27934
+[ISFDB] Parsed 13 books from HTML
+[2674/11408] ⏭️  Worzel Gummidge - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27935
+[ISFDB] Found tags: fantasy
+[ISFDB] Parsed 2 books from HTML
+[2675/11408] 🏷️  Firethorn → fantasy (from: fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27936
+[ISFDB] Parsed 3 books from HTML
+[2676/11408] ⏭️  The Dolphins' View - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27938
+[ISFDB] Parsed 3 books from HTML
+[2677/11408] ⏭️  Transgressions - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27942
+[ISFDB] Found tags: urban fantasy, paranormal romance
+[ISFDB] Parsed 5 books from HTML
+[2678/11408] 🏷️  Willow Tate → romance (from: urban fantasy, paranormal romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27945
+[ISFDB] Found tags: jack vance pastiche
+[ISFDB] Parsed 2 books from HTML
+[2679/11408] ⏭️  Filidor Vesh (tags: jack vance pastiche) - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27951
+[ISFDB] Found tags: young-adult fantasy, vampires, urban fantasy
+[ISFDB] Parsed 2 books from HTML
+[2680/11408] 🏷️  Goth → fantasy (from: young-adult fantasy, vampires, urban fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27956
+[ISFDB] Found tags: science fiction, hard sf, genetic engineering, quiet war, terraforming, outer planets, intrigue, personality overlay, spy story, unreliable narrator, microgravity, father, death, ashes
+[ISFDB] Parsed 4 books from HTML
+[2681/11408] 🏷️  The Quiet War → science-fiction (from: science fiction, hard sf, genetic engineering)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27961
+[ISFDB] Found tags: dark fantasy
+[ISFDB] Parsed 2 books from HTML
+[2682/11408] 🏷️  Angel Cafe → fantasy (from: dark fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27965
+[ISFDB] Found tags: urban fantasy, fantasy
+[ISFDB] Parsed 4 books from HTML
+[2683/11408] 🏷️  Dog Days (John Levitt) → fantasy (from: urban fantasy, fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27967
+[ISFDB] Parsed 2 books from HTML
+[2684/11408] ⏭️  Rex Corvan - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27968
+[ISFDB] Found tags: young-adult fantasy, afterlife, spirits, future, dead, rescue
+[ISFDB] Parsed 3 books from HTML
+[2685/11408] 🏷️  Skinjacker Trilogy → fantasy (from: young-adult fantasy, afterlife, spirits)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27970
+[ISFDB] Parsed 4 books from HTML
+[2686/11408] ⏭️  The Imager Chronicles - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27972
+[ISFDB] Found tags: science fiction
+[ISFDB] Parsed 2 books from HTML
+[2687/11408] 🏷️  Coyote Chronicles → science-fiction (from: science fiction)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27976
+[ISFDB] Found tags: urban fantasy, ghosts
+[ISFDB] Parsed 2 books from HTML
+[2688/11408] 🏷️  Anya Kalinczyk → horror (from: urban fantasy, ghosts)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27977
+[ISFDB] Found tags: fantasy
+[ISFDB] Parsed 2 books from HTML
+[2689/11408] 🏷️  Delphic Oracle / Tara Sheridan → fantasy (from: fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27978
+[ISFDB] Found tags: paranormal romance
+[ISFDB] Parsed 3 books from HTML
+[2690/11408] 🏷️  Night Trilogy (T-FLAC Psi Unit) → romance (from: paranormal romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27979
+[ISFDB] Found tags: paranormal romance
+[ISFDB] Parsed 4 books from HTML
+[2691/11408] 🏷️  Addison Foster → romance (from: paranormal romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27980
+[ISFDB] Found tags: juvenile fantasy
+[ISFDB] Parsed 3 books from HTML
+[2692/11408] 🏷️  Knife Trilogy → fantasy (from: juvenile fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27982
+[ISFDB] Found tags: paranormal romance
+[ISFDB] Parsed 2 books from HTML
+[2693/11408] 🏷️  Waterlilies → romance (from: paranormal romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27983
+[ISFDB] Found tags: paranormal romance
+[ISFDB] Parsed 5 books from HTML
+[2694/11408] 🏷️  Immortal Warriors → romance (from: paranormal romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27984
+[ISFDB] Found tags: young-adult fantasy, werewolf, paranormal romance, wolves, supernatural
+[ISFDB] Parsed 4 books from HTML
+[2695/11408] 🏷️  Nightshade (Andrea Cremer, young adult) → horror (from: young-adult fantasy, werewolf, paranormal romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27985
+[ISFDB] Found tags: young-adult fantasy, young-adult sf, werewolf
+[ISFDB] Parsed 5 books from HTML
+[2696/11408] 🏷️  13 to Life → horror (from: young-adult fantasy, young-adult sf, werewolf)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27986
+[ISFDB] Found tags: urban fantasy
+[ISFDB] Parsed 3 books from HTML
+[2697/11408] 🏷️  Personal Demons (Lisa Desrochers) → fantasy (from: urban fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27988
+[ISFDB] Found tags: young-adult sf
+[ISFDB] Parsed 2 books from HTML
+[2698/11408] 🏷️  Riding Tycho → science-fiction (from: young-adult sf)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27989
+[ISFDB] Found tags: juvenile horror, young-adult fantasy
+[ISFDB] Parsed 3 books from HTML
+[2699/11408] 🏷️  Bonebreaker Trilogy → fantasy (from: juvenile horror, young-adult fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27990
+[ISFDB] Found tags: vampires
+[ISFDB] Parsed 2 books from HTML
+[2700/11408] 🏷️  James Whistler → horror (from: vampires)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27991
+[ISFDB] Found tags: post apocalypse
+[ISFDB] Parsed 2 books from HTML
+[2701/11408] 🏷️  Final Impact → post-apocalyptic (from: post apocalypse)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27992
+[ISFDB] Found tags: novelization
+[ISFDB] Parsed 2 books from HTML
+[2702/11408] ⏭️  Species (tags: novelization) - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27994
+[ISFDB] Parsed 2 books from HTML
+[2703/11408] ⏭️  Arcady - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27996
+[ISFDB] Parsed 52 books from HTML
+[2704/11408] ⏭️  Left Behind: The Kids - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27997
+[ISFDB] Found tags: novelization, movie novelization
+[ISFDB] Parsed 3 books from HTML
+[2705/11408] ⏭️  Cocoon (tags: novelization, movie novelization) - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?27999
+[ISFDB] Found tags: vampires, paranormal romance, lesbian
+[ISFDB] Parsed 4 books from HTML
+[2706/11408] 🏷️  Valentine Darrow and Alexa Newland → horror (from: vampires, paranormal romance, lesbian)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?28000
+[ISFDB] Found tags: science fiction, paranormal romance, erotica
+[ISFDB] Parsed 2 books from HTML
+[2707/11408] 🏷️  Valhalla (Kate Pearce) → romance (from: science fiction, paranormal romance, erotica)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?28001
+[ISFDB] Found tags: fantasy, female protagonist, romance, murder, quest, occult relic, boston, paranormal mystery, crime, occult, female main character, strong female character, paranormal romance, thriller, supernatural thriller
+[ISFDB] Parsed 3 books from HTML
+[2708/11408] 🏷️  The Unmentionables / Diesel → mystery (from: fantasy, female protagonist, romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?28002
+[ISFDB] Parsed 2 books from HTML
+[2709/11408] ⏭️  Interplanetary League - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?28003
+[ISFDB] Found tags: werewolves, lycanthropy
+[ISFDB] Parsed 2 books from HTML
+[2710/11408] 🏷️  Ivy Cole → horror (from: werewolves, lycanthropy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?28004
+[ISFDB] Found tags: young-adult fantasy
+[ISFDB] Parsed 3 books from HTML
+[2711/11408] 🏷️  The Gods of Fate → fantasy (from: young-adult fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?28005
+[ISFDB] Parsed 3 books from HTML
+[2712/11408] ⏭️  The Shadowdwellers - no match
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?28007
+[ISFDB] Found tags: juvenile sf, parallel universe
+[ISFDB] Parsed 2 books from HTML
+[2713/11408] 🏷️  Ignatius MacFarland → science-fiction (from: juvenile sf, parallel universe)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?28009
+[ISFDB] Found tags: urban fantasy, werewolf, vampires
+[ISFDB] Parsed 6 books from HTML
+[2714/11408] 🏷️  H & W Investigations → horror (from: urban fantasy, werewolf, vampires)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?28010
+[ISFDB] Found tags: urban fantasy, young-adult fantasy, goblins
+[ISFDB] Parsed 3 books from HTML
+[2715/11408] 🏷️  Goblin Wars → fantasy (from: urban fantasy, young-adult fantasy, goblins)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?28011
+[ISFDB] Found tags: historical fantasy, steampunk
+[ISFDB] Parsed 3 books from HTML
+[2716/11408] 🏷️  Veneficas Americana → science-fiction (from: historical fantasy, steampunk)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?28013
+[ISFDB] Found tags: young-adult fantasy, paranormal romance, dragons, shape-shifting, household moving, high schools, schools, hunting, sisters, dating, social customs
+[ISFDB] Parsed 3 books from HTML
+[2717/11408] 🏷️  Draki / Firelight → fantasy (from: young-adult fantasy, paranormal romance, dragons)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?28015
+[ISFDB] Found tags: science fiction
+[ISFDB] Parsed 4 books from HTML
+[2718/11408] 🏷️  SF: Authors' Choice → science-fiction (from: science fiction)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?28016
+[ISFDB] Found tags: paranormal romance
+[ISFDB] Parsed 3 books from HTML
+[2719/11408] 🏷️  Shifter (Sinclair) → romance (from: paranormal romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?28017
+[ISFDB] Found tags: young-adult fantasy, werewolf, pooka
+[ISFDB] Parsed 3 books from HTML
+[2720/11408] 🏷️  Other → horror (from: young-adult fantasy, werewolf, pooka)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?28022
+[ISFDB] Found tags: vampires, paranormal romance, mafia, urban fantasy
+[ISFDB] Parsed 2 books from HTML
+[2721/11408] 🏷️  The Nightfall Syndicate → horror (from: vampires, paranormal romance, mafia)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?28023
+[ISFDB] Found tags: paranormal romance
+[ISFDB] Parsed 3 books from HTML
+[2722/11408] 🏷️  Institut Scientifique → romance (from: paranormal romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?28024
+[ISFDB] Found tags: urban fantasy
+[ISFDB] Parsed 2 books from HTML
+[2723/11408] 🏷️  Hoodoo → fantasy (from: urban fantasy)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?28025
+[ISFDB] Found tags: young-adult fantasy, faeries, romance
+[ISFDB] Parsed 5 books from HTML
+[2724/11408] 🏷️  Wings (Aprilynne Pike) → fantasy (from: young-adult fantasy, faeries, romance)
+[ISFDB] Fetching series page: https://isfdb.org/cgi-bin/pe.cgi?28026
+[ISFDB] Found tags: young-adult fantasy
+[ISFDB] Parsed 3 books from HTML
+[2725/11408] 🏷️  Shade (Jeri Smith-Ready) → fantasy (from: young-adult fantasy)

@@ -1,8 +1,8 @@
 # NachoSeries 📚
 
-**Series Database Builder for Bookarr**
+**Series Database Builder for NachoReads**
 
-NachoSeries aggregates and reconciles book series data from multiple sources to build a reliable, local series database. It runs independently and provides data to Bookarr for series-aware browsing.
+NachoSeries aggregates and reconciles book series data from multiple sources to build a reliable, local series database. It runs independently and provides data to NachoReads for series-aware browsing.
 
 ## Features
 
@@ -112,13 +112,14 @@ Year range: 2000–present
 - `ebook_known` - Ebook availability flag
 - `audiobook_known` - Audiobook availability flag
 
-## Integration with Bookarr
+## Integration with NachoReads
 
-NachoSeries maintains an SQLite database that Bookarr imports on startup:
+NachoSeries provides a REST API that NachoReads queries for series data:
 
 1. NachoSeries crawls and verifies series data daily
-2. Bookarr reads `nachoseries.db` on startup
-3. Bookarr syncs new/updated series periodically
+2. NachoReads queries NachoSeries API for series browsing
+3. Series data includes genre tags (Sci-Fi, Fantasy, LitRPG, etc.)
+4. Supports filtering by genre, searching by name/author
 
 ## License
 
