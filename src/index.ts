@@ -7,6 +7,8 @@ import { initDatabase, getStats, closeDatabase, upsertSeries, upsertSeriesBook, 
 import { fetchSeries as fetchLibraryThing } from './sources/librarything.js';
 import { fetchSeries as fetchOpenLibrary } from './sources/openLibrary.js';
 import { fetchSeries as fetchISFDB, browseSeriesByGenre, fetchSeriesById, genreKeywords, discoverSeriesFromAuthors, scanSeriesRange, fetchPopularAuthors, fetchAuthorSeries, mapTagsToGenre, detectGenre, guessGenreFromName } from './sources/isfdb.js';
+import { lookupGenreForSeries } from './sources/genreLookup.js';
+import { shouldFilterSeries, detectLanguage, getNonEnglishSqlPatterns } from './utils/languageFilter.js';
 import { checkFlareSolverr } from './sources/flareSolverr.js';
 import { compareSources, needsTalpaVerification } from './reconciler/matcher.js';
 import { config } from './config.js';
@@ -62,9 +64,21 @@ async function main() {
       await runAutoTagFromNames();
       break;
 
+    case 'booktag':
+      // Tag untagged series by looking up individual books in Open Library
+      const booktagLimit = parseInt(args.find(a => a.startsWith('--limit='))?.split('=')[1] || '100');
+      await runBookBasedTagging(booktagLimit);
+      break;
+
     case 'daily':
       // Automated daily job: discover new series + tag untagged
       await runDailyJob();
+      break;
+
+    case 'cleanup':
+      // Remove non-English series from database
+      const dryRun = !args.includes('--confirm');
+      await runLanguageCleanup(dryRun);
       break;
 
     case 'save':
@@ -84,12 +98,15 @@ async function main() {
       console.log('  tag [genre]       Tag untagged series with genres using keyword matching');
       console.log('  retag             Re-fetch ISFDB tags for untagged series');
       console.log('  autotag           Tag all untagged series from name analysis (fast)');
+      console.log('  booktag           Tag series by looking up books in Open Library');
+      console.log('  cleanup           Remove non-English series (--confirm to execute)');
       console.log('  daily             Run automated daily job (discover + tag)');
       console.log('');
       console.log('Options:');
       console.log('  --save            Save discovered series to database');
       console.log('  --limit=N         Limit number of items to process');
       console.log('  --genre=GENRE     Tag discovered series with this genre');
+      console.log('  --confirm         Execute cleanup (otherwise dry-run)');
       console.log('');
       console.log('Genres: ' + Object.keys(genreKeywords).join(', '));
       break;
@@ -542,11 +559,19 @@ async function runDiscover(mode: string, saveToDb = false, limit = 100, genre?: 
   
   let saved = 0;
   let skipped = 0;
+  let filtered = 0;
   let errors = 0;
   
   for (let i = 0; i < discoveredSeries.length; i++) {
     const seriesRef = discoveredSeries[i];
     const progress = `[${i + 1}/${discoveredSeries.length}]`;
+    
+    // Language filter - skip non-English series
+    if (shouldFilterSeries(seriesRef.name)) {
+      console.log(`${progress} 🌍 ${seriesRef.name} (non-English, skipped)`);
+      filtered++;
+      continue;
+    }
     
     // Check if already in database
     const existing = findSeriesByName(seriesRef.name);
@@ -629,7 +654,8 @@ async function runDiscover(mode: string, saveToDb = false, limit = 100, genre?: 
   }
   console.log(`  Discovered: ${discoveredSeries.length} series`);
   console.log(`  Saved: ${saved}`);
-  console.log(`  Skipped: ${skipped}`);
+  console.log(`  Skipped (existing): ${skipped}`);
+  console.log(`  Filtered (non-English): ${filtered}`);
   console.log(`  Errors: ${errors}`);
 }
 
@@ -982,4 +1008,163 @@ async function runDailyJob() {
   // Count remaining untagged
   const untaggedCount = db.prepare(`SELECT COUNT(*) as count FROM series WHERE genre IS NULL`).get() as { count: number };
   console.log(`\n  Untagged: ${untaggedCount.count}`);
+}
+
+/**
+ * Tag untagged series by looking up individual books in Open Library
+ * Uses book-level genre data to tag entire series
+ */
+async function runBookBasedTagging(limit = 100) {
+  console.log('📚 Book-based genre tagging via Open Library...');
+  console.log(`📊 Limit: ${limit} series`);
+  console.log('Strategy: Look up books → extract subjects → map to genre');
+  console.log('─'.repeat(50));
+  
+  const db = getDb();
+  
+  // Get untagged series with their books
+  const untaggedSeries = db.prepare(`
+    SELECT s.id, s.name, s.author
+    FROM series s
+    WHERE s.genre IS NULL
+    LIMIT ?
+  `).all(limit) as Array<{ id: string; name: string; author: string | null }>;
+  
+  console.log(`Found ${untaggedSeries.length} untagged series\n`);
+  
+  let tagged = 0;
+  let noMatch = 0;
+  let errors = 0;
+  const genreCounts: Record<string, number> = {};
+  
+  for (let i = 0; i < untaggedSeries.length; i++) {
+    const series = untaggedSeries[i];
+    const progress = `[${i + 1}/${untaggedSeries.length}]`;
+    
+    try {
+      // Get books for this series
+      const books = db.prepare(`
+        SELECT title, author FROM series_book WHERE series_id = ? LIMIT 5
+      `).all(series.id) as Array<{ title: string; author: string | null }>;
+      
+      if (books.length === 0) {
+        console.log(`${progress} ⏭️  ${series.name} (no books in DB)`);
+        noMatch++;
+        continue;
+      }
+      
+      // Look up genre via Open Library
+      const result = await lookupGenreForSeries(
+        books.map(b => ({ title: b.title, author: b.author || series.author || undefined })),
+        3  // Try up to 3 books
+      );
+      
+      if (!result) {
+        console.log(`${progress} ⏭️  ${series.name} (no genre found)`);
+        noMatch++;
+        continue;
+      }
+      
+      // Update the series with the genre
+      db.prepare("UPDATE series SET genre = ?, updated_at = datetime('now') WHERE id = ?")
+        .run(result.genre, series.id);
+      
+      console.log(`${progress} 📖 ${series.name} → ${result.genre} (from: ${result.matchedSubjects.slice(0, 2).join(', ')})`);
+      tagged++;
+      genreCounts[result.genre] = (genreCounts[result.genre] || 0) + 1;
+      
+    } catch (error) {
+      console.log(`${progress} ❌ ${series.name}: ${error}`);
+      errors++;
+    }
+  }
+  
+  console.log('');
+  console.log('─'.repeat(50));
+  console.log('📊 Book-based Tagging Summary:');
+  console.log(`  Processed: ${untaggedSeries.length}`);
+  console.log(`  Tagged: ${tagged}`);
+  console.log(`  No match: ${noMatch}`);
+  console.log(`  Errors: ${errors}`);
+  console.log('');
+  console.log('By genre:');
+  for (const [g, count] of Object.entries(genreCounts).sort((a, b) => b[1] - a[1])) {
+    console.log(`  ${g}: ${count}`);
+  }
+  
+  // Show remaining untagged
+  const remaining = db.prepare(`SELECT COUNT(*) as count FROM series WHERE genre IS NULL`).get() as { count: number };
+  console.log(`\nRemaining untagged: ${remaining.count}`);
+}
+
+/**
+ * Clean up non-English series from the database
+ * Uses pattern matching and language detection
+ */
+async function runLanguageCleanup(dryRun = true) {
+  console.log('🌍 Language Cleanup: Removing non-English series...');
+  console.log(`Mode: ${dryRun ? 'DRY RUN (use --confirm to delete)' : '⚠️  LIVE - DELETING'}`);
+  console.log('─'.repeat(50));
+  
+  const db = getDb();
+  
+  // Get all series and check each one
+  const allSeries = db.prepare(`SELECT id, name FROM series`).all() as Array<{ id: string; name: string }>;
+  
+  const nonEnglish: Array<{ id: string; name: string; language: string }> = [];
+  
+  for (const series of allSeries) {
+    const result = detectLanguage(series.name);
+    if (!result.isEnglish && result.confidence > 60) {
+      nonEnglish.push({
+        id: series.id,
+        name: series.name,
+        language: result.detectedLanguage || 'unknown',
+      });
+    }
+  }
+  
+  // Group by detected language
+  const byLanguage: Record<string, string[]> = {};
+  for (const s of nonEnglish) {
+    if (!byLanguage[s.language]) {
+      byLanguage[s.language] = [];
+    }
+    byLanguage[s.language].push(s.name);
+  }
+  
+  console.log(`\nFound ${nonEnglish.length} non-English series:\n`);
+  
+  for (const [lang, names] of Object.entries(byLanguage).sort((a, b) => b[1].length - a[1].length)) {
+    console.log(`  ${lang}: ${names.length} series`);
+    // Show first 3 examples
+    for (const name of names.slice(0, 3)) {
+      console.log(`    - ${name}`);
+    }
+    if (names.length > 3) {
+      console.log(`    ... and ${names.length - 3} more`);
+    }
+  }
+  
+  if (dryRun) {
+    console.log('\n⚠️  DRY RUN - No changes made');
+    console.log('Run with --confirm to delete these series');
+  } else {
+    console.log('\n🗑️  Deleting non-English series...');
+    
+    let deleted = 0;
+    for (const series of nonEnglish) {
+      // Delete books first (foreign key)
+      db.prepare(`DELETE FROM series_book WHERE series_id = ?`).run(series.id);
+      db.prepare(`DELETE FROM source_data WHERE series_id = ?`).run(series.id);
+      db.prepare(`DELETE FROM series WHERE id = ?`).run(series.id);
+      deleted++;
+    }
+    
+    console.log(`✅ Deleted ${deleted} non-English series`);
+  }
+  
+  // Show final stats
+  const stats = getStats();
+  console.log(`\nDatabase now has ${stats.totalSeries} series`);
 }

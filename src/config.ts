@@ -9,6 +9,12 @@ export const config = {
     path: process.env.NACHOSERIES_DB_PATH || './data/nachoseries.db',
   },
   
+  // Language filtering - only allow English series
+  language: {
+    allowedLanguages: ['english'],
+    filterEnabled: true,
+  },
+  
   // Target genres to crawl
   genres: [
     'science-fiction',
