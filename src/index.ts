@@ -6,7 +6,7 @@
 import { initDatabase, getStats, closeDatabase, upsertSeries, upsertSeriesBook, findSeriesByName, getSeriesNeedingVerification, storeSourceData, getDb } from './database/db.js';
 import { fetchSeries as fetchLibraryThing } from './sources/librarything.js';
 import { fetchSeries as fetchOpenLibrary } from './sources/openLibrary.js';
-import { fetchSeries as fetchISFDB, browseSeriesByGenre, fetchSeriesById, genreKeywords, discoverSeriesFromAuthors, scanSeriesRange, fetchPopularAuthors, fetchAuthorSeries } from './sources/isfdb.js';
+import { fetchSeries as fetchISFDB, browseSeriesByGenre, fetchSeriesById, genreKeywords, discoverSeriesFromAuthors, scanSeriesRange, fetchPopularAuthors, fetchAuthorSeries, mapTagsToGenre } from './sources/isfdb.js';
 import { checkFlareSolverr } from './sources/flareSolverr.js';
 import { compareSources, needsTalpaVerification } from './reconciler/matcher.js';
 import { config } from './config.js';
@@ -52,6 +52,11 @@ async function main() {
       await runTagGenres(args[1]);
       break;
 
+    case 'retag':
+      const retagLimit = parseInt(args.find(a => a.startsWith('--limit='))?.split('=')[1] || '100');
+      await runRetagFromISFDB(retagLimit);
+      break;
+
     case 'save':
       await saveSeriesFromTest(args[1]);
       break;
@@ -67,6 +72,7 @@ async function main() {
       console.log('  verify            Verify existing series data');
       console.log('  discover [mode]   Discover series (modes: authors, scan, seed)');
       console.log('  tag [genre]       Tag untagged series with genres using keyword matching');
+      console.log('  retag             Re-fetch ISFDB tags for untagged series');
       console.log('');
       console.log('Options:');
       console.log('  --save            Save discovered series to database');
@@ -567,11 +573,14 @@ async function runDiscover(mode: string, saveToDb = false, limit = 100, genre?: 
     const yearStart = years.length > 0 ? Math.min(...years) : undefined;
     const yearEnd = years.length > 0 ? Math.max(...years) : undefined;
     
-    // Save to database WITH GENRE if provided
+    // Determine genre: use provided genre, or auto-detect from ISFDB tags
+    const detectedGenre = genre || (series.tags ? mapTagsToGenre(series.tags) : undefined);
+    
+    // Save to database WITH GENRE if provided or detected
     const seriesId = upsertSeries({
       name: series.name,
       author: series.author,
-      genre: genre,  // NOW PROPERLY SET!
+      genre: detectedGenre,
       total_books: series.books.length,
       year_start: yearStart,
       year_end: yearEnd,
@@ -594,7 +603,8 @@ async function runDiscover(mode: string, saveToDb = false, limit = 100, genre?: 
     // Store raw source data
     storeSourceData(seriesId, 'isfdb', result.raw, series.books.length);
     
-    console.log(`${progress} ✅ ${series.name} - ${series.books.length} books${genre ? ` [${genre}]` : ''}`);
+    const genreLabel = detectedGenre ? ` [${detectedGenre}]` : '';
+    console.log(`${progress} ✅ ${series.name} - ${series.books.length} books${genreLabel}`);
     saved++;
   }
   
@@ -737,4 +747,89 @@ async function runTagGenres(targetGenre?: string) {
     console.log(`  ${g}: ${count}`);
   }
   console.log(`\nRemaining untagged: ${untagged.length - tagged}`);
+}
+
+/**
+ * Re-fetch ISFDB tags for untagged series and apply genre classification
+ */
+async function runRetagFromISFDB(limit = 100) {
+  console.log('🔄 Re-tagging series from ISFDB tags...');
+  console.log(`📊 Limit: ${limit} series`);
+  console.log('─'.repeat(50));
+  
+  const db = getDb();
+  
+  // Get untagged series that have an ISFDB ID
+  const stmt = db.prepare(`
+    SELECT id, name, isfdb_id 
+    FROM series 
+    WHERE genre IS NULL AND isfdb_id IS NOT NULL
+    LIMIT ?
+  `);
+  const untagged = stmt.all(limit) as Array<{ id: number; name: string; isfdb_id: string }>;
+  
+  console.log(`Found ${untagged.length} untagged series with ISFDB IDs\n`);
+  
+  let tagged = 0;
+  let noTags = 0;
+  let errors = 0;
+  const genreCounts: Record<string, number> = {};
+  
+  for (let i = 0; i < untagged.length; i++) {
+    const series = untagged[i];
+    const progress = `[${i + 1}/${untagged.length}]`;
+    
+    try {
+      // Fetch series from ISFDB to get tags
+      const result = await fetchSeriesById(series.isfdb_id);
+      
+      if (result.error || !result.series) {
+        console.log(`${progress} ❌ ${series.name}: ${result.error || 'No data'}`);
+        errors++;
+        continue;
+      }
+      
+      const tags = result.series.tags;
+      
+      if (!tags || tags.length === 0) {
+        console.log(`${progress} ⏭️  ${series.name} (no tags)`);
+        noTags++;
+        continue;
+      }
+      
+      // Map tags to genre
+      const genre = mapTagsToGenre(tags);
+      
+      if (!genre) {
+        console.log(`${progress} ⏭️  ${series.name} (tags: ${tags.join(', ')} - no genre match)`);
+        noTags++;
+        continue;
+      }
+      
+      // Update the series with the genre
+      db.prepare("UPDATE series SET genre = ?, updated_at = datetime('now') WHERE id = ?")
+        .run(genre, series.id);
+      
+      console.log(`${progress} 🏷️  ${series.name} → ${genre} (from: ${tags.slice(0, 3).join(', ')})`);
+      tagged++;
+      genreCounts[genre] = (genreCounts[genre] || 0) + 1;
+      
+    } catch (error) {
+      console.log(`${progress} ❌ ${series.name}: ${error}`);
+      errors++;
+    }
+  }
+  
+  console.log('');
+  console.log('─'.repeat(50));
+  console.log('📊 Re-tagging Summary:');
+  console.log(`  Processed: ${untagged.length}`);
+  console.log(`  Tagged: ${tagged}`);
+  console.log(`  No tags/match: ${noTags}`);
+  console.log(`  Errors: ${errors}`);
+  console.log('');
+  console.log('Tags by genre:');
+  for (const [g, count] of Object.entries(genreCounts)) {
+    console.log(`  ${g}: ${count}`);
+  }
 }

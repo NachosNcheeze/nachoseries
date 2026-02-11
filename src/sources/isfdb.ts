@@ -178,12 +178,24 @@ async function fetchSeriesPage(seriesId: string): Promise<SourceSeries | null> {
     return null;
   }
   
+  // Extract series tags (genre/category info)
+  const tags: string[] = [];
+  $('li:contains("Series Tags:")').find('a[href*="tag.cgi"]').each((_, el) => {
+    const tag = $(el).text().trim().toLowerCase();
+    if (tag && !tags.includes(tag)) {
+      tags.push(tag);
+    }
+  });
+  if (tags.length > 0) {
+    console.log(`[ISFDB] Found tags: ${tags.join(', ')}`);
+  }
+
   // Extract author - appears in book entries as "by Author"
   let author: string | undefined;
   
   // Parse books from the series listing
   const books: SourceBook[] = [];
-  
+
   // Get the content area - books are in nested lists within ContentBox divs
   const contentBoxes = $('#content .ContentBox');
   
@@ -273,6 +285,7 @@ async function fetchSeriesPage(seriesId: string): Promise<SourceSeries | null> {
     author,
     books: uniqueBooks,
     sourceId: seriesId,
+    tags: tags.length > 0 ? tags : undefined,
   };
 }
 
@@ -370,6 +383,93 @@ export const genreKeywords: Record<string, string[]> = {
   'science-fiction': ['space opera', 'hard science fiction', 'military sf series', 'cyberpunk'],
   'post-apocalyptic': ['post-apocalyptic', 'apocalyptic', 'dystopian series'],
 };
+
+/**
+ * Map ISFDB tags to our genre categories
+ * Returns the best matching genre for a list of tags, or undefined if no match
+ * 
+ * Strategy: Count matches per genre and pick the one with most matches.
+ * If tied, use priority order. This prevents a single "romance" tag from
+ * overriding multiple "fantasy" indicators.
+ */
+export function mapTagsToGenre(tags: string[]): string | undefined {
+  if (!tags || tags.length === 0) return undefined;
+  
+  const tagSet = new Set(tags.map(t => t.toLowerCase()));
+  
+  // Genre tag mappings - each tag maps to a genre
+  const genreTagMap: Record<string, string[]> = {
+    'litrpg': ['litrpg', 'gamelit', 'progression fantasy', 'cultivation', 'dungeon core'],
+    'post-apocalyptic': ['post-apocalyptic', 'apocalyptic', 'post apocalypse', 'dystopia', 'dystopian', 'zombie', 'zombies'],
+    'horror': ['horror', 'supernatural horror', 'gothic', 'cosmic horror', 'lovecraftian', 'cthulhu mythos', 'vampires', 'werewolf', 'haunted', 'ghosts'],
+    'mystery': ['mystery', 'detective', 'crime fiction', 'whodunit', 'sleuth', 'noir'],
+    'thriller': ['thriller', 'suspense', 'spy fiction', 'espionage', 'spy', 'assassin'],
+    'romance': ['romance', 'paranormal romance', 'romantic fantasy'],
+    'science-fiction': [
+      'science fiction', 'sf', 'sci-fi', 'space opera', 'hard sf', 
+      'hard science fiction', 'military sf', 'cyberpunk', 'space exploration',
+      'alien contact', 'first contact', 'time travel', 'robots', 'ai',
+      'nanotechnology', 'colonization', 'galactic empire', 'far future',
+      'interstellar travel', 'aliens', 'alien', 'space war', 'space warfare',
+      'terraforming', 'mars', 'near future', 'artificial intelligence',
+      'alternate history', 'parallel universe', 'parallel universes',
+      'young-adult sf', 'juvenile sf'
+    ],
+    'fantasy': [
+      'fantasy', 'epic fantasy', 'high fantasy', 'urban fantasy', 
+      'sword and sorcery', 'heroic fantasy', 'magic', 'magical',
+      'dragons', 'elves', 'wizards', 'quest', 'witches', 'sorcery',
+      'humorous fantasy', 'historical fantasy', 'gaslamp fantasy',
+      'young-adult fantasy', 'juvenile fantasy', 'dark fantasy'
+    ],
+  };
+  
+  // Priority order for tie-breaking (most specific first)
+  const genrePriority = ['litrpg', 'horror', 'mystery', 'thriller', 'post-apocalyptic', 'romance', 'science-fiction', 'fantasy'];
+  
+  // Count matches per genre
+  const genreScores: Record<string, number> = {};
+  
+  for (const [genre, genreTags] of Object.entries(genreTagMap)) {
+    let score = 0;
+    for (const gTag of genreTags) {
+      if (tagSet.has(gTag)) {
+        score++;
+      }
+    }
+    if (score > 0) {
+      genreScores[genre] = score;
+    }
+  }
+  
+  // No matches
+  if (Object.keys(genreScores).length === 0) {
+    return undefined;
+  }
+  
+  // Find max score
+  const maxScore = Math.max(...Object.values(genreScores));
+  
+  // Get all genres with max score
+  const topGenres = Object.entries(genreScores)
+    .filter(([_, score]) => score === maxScore)
+    .map(([genre, _]) => genre);
+  
+  // If only one, return it
+  if (topGenres.length === 1) {
+    return topGenres[0];
+  }
+  
+  // Tie-break by priority
+  for (const genre of genrePriority) {
+    if (topGenres.includes(genre)) {
+      return genre;
+    }
+  }
+  
+  // Fallback to first match
+  return topGenres[0];
+}
 
 /**
  * Browse series by genre using keyword searches

@@ -27,6 +27,7 @@ export interface SourceSeries {
   description?: string;
   books: SourceBook[];
   sourceId?: string;        // ID in the source system
+  tags?: string[];          // Tags/categories from the source
 }
 
 /**
