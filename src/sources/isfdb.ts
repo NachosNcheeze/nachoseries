@@ -385,58 +385,148 @@ export const genreKeywords: Record<string, string[]> = {
 };
 
 /**
+ * Comprehensive genre tag mappings for ISFDB
+ * Includes exact matches, partial patterns, and ISFDB-specific terminology
+ */
+const GENRE_TAG_MAP: Record<string, { exact: string[]; contains: string[] }> = {
+  'litrpg': {
+    exact: ['litrpg', 'gamelit', 'progression fantasy', 'cultivation', 'dungeon core', 'isekai', 'wuxia', 'xianxia'],
+    contains: ['rpg', 'game-', 'level up', 'stat screen']
+  },
+  'post-apocalyptic': {
+    exact: [
+      'post-apocalyptic', 'apocalyptic', 'post apocalypse', 'dystopia', 'dystopian',
+      'zombie', 'zombies', 'nuclear war', 'nuclear holocaust', 'plague', 'pandemic',
+      'ecological disaster', 'collapse of civilization', 'survivalist', 'end of the world'
+    ],
+    contains: ['apocalyp', 'dystop', 'post-nuclear', 'survival']
+  },
+  'horror': {
+    exact: [
+      'horror', 'supernatural horror', 'gothic', 'cosmic horror', 'lovecraftian',
+      'cthulhu mythos', 'vampires', 'vampire', 'werewolf', 'werewolves', 'haunted',
+      'ghosts', 'ghost', 'slasher', 'monster', 'monsters', 'demon', 'demons',
+      'possession', 'exorcism', 'occult', 'satanic', 'serial killer', 'cannibalism',
+      'body horror', 'folk horror', 'psychological horror', 'splatterpunk',
+      'creature feature', 'lovecraft', 'haunting', 'poltergeist', 'undead'
+    ],
+    contains: ['horror', 'terror', 'nightmare', 'creep', 'scary', 'frightening']
+  },
+  'mystery': {
+    exact: [
+      'mystery', 'detective', 'crime fiction', 'crime', 'whodunit', 'sleuth', 'noir',
+      'cozy mystery', 'police procedural', 'private investigator', 'amateur sleuth',
+      'locked room', 'murder mystery', 'investigation', 'forensic'
+    ],
+    contains: ['mystery', 'detective', 'murder', 'crime']
+  },
+  'thriller': {
+    exact: [
+      'thriller', 'suspense', 'spy fiction', 'espionage', 'spy', 'assassin',
+      'conspiracy', 'political thriller', 'techno-thriller', 'legal thriller',
+      'medical thriller', 'action', 'adventure', 'terrorism', 'kidnapping'
+    ],
+    contains: ['thriller', 'suspense', 'espionage']
+  },
+  'romance': {
+    exact: [
+      'romance', 'paranormal romance', 'romantic fantasy', 'love story',
+      'regency romance', 'historical romance', 'contemporary romance',
+      'romantic suspense', 'erotic romance'
+    ],
+    contains: ['romance', 'romantic']
+  },
+  'science-fiction': {
+    exact: [
+      'science fiction', 'sf', 'sci-fi', 'scifi', 'space opera', 'hard sf',
+      'hard science fiction', 'military sf', 'military science fiction', 'cyberpunk',
+      'space exploration', 'alien contact', 'first contact', 'time travel',
+      'robots', 'robot', 'ai', 'artificial intelligence', 'nanotechnology',
+      'colonization', 'galactic empire', 'far future', 'interstellar travel',
+      'aliens', 'alien', 'space war', 'space warfare', 'terraforming', 'mars',
+      'near future', 'alternate history', 'parallel universe', 'parallel universes',
+      'young-adult sf', 'juvenile sf', 'steampunk', 'dieselpunk', 'biopunk',
+      'generation ship', 'space station', 'starship', 'ftl', 'warp drive',
+      'clone', 'cloning', 'genetic engineering', 'transhumanism', 'posthuman',
+      'singularity', 'virtual reality', 'simulation', 'matrix', 'uploaded minds',
+      'dyson sphere', 'ringworld', 'megastructure', 'planet', 'planetary romance',
+      'solar system', 'asteroid', 'moon', 'venus', 'jupiter', 'saturn',
+      'faster than light', 'hyperspace', 'wormhole', 'space fleet', 'space navy',
+      'alien invasion', 'extraterrestrial', 'ufo', 'contact', 'seti',
+      'space colony', 'generation starship', 'sleeper ship', 'cryo', 'cryonics',
+      'uplift', 'sentient', 'android', 'cyborg', 'mech', 'mecha', 'power armor',
+      'galactic', 'interplanetary', 'interstellar', 'intergalactic',
+      'future war', 'star war', 'space battle', 'space combat',
+      'psionics', 'psi', 'telepathy', 'telekinesis', 'precognition'
+    ],
+    contains: ['sf', 'sci-fi', 'science fic', 'space', 'alien', 'robot', 'cyber', 'future', 'star']
+  },
+  'fantasy': {
+    exact: [
+      'fantasy', 'epic fantasy', 'high fantasy', 'urban fantasy', 'sword and sorcery',
+      'heroic fantasy', 'magic', 'magical', 'dragons', 'dragon', 'elves', 'elf',
+      'wizards', 'wizard', 'mage', 'quest', 'witches', 'witch', 'sorcery', 'sorcerer',
+      'humorous fantasy', 'historical fantasy', 'gaslamp fantasy', 'young-adult fantasy',
+      'juvenile fantasy', 'dark fantasy', 'fairy tale', 'fairy tales', 'retold fairy tales',
+      'fae', 'faerie', 'faery', 'folklore', 'myth', 'mythology', 'mythological',
+      'arthurian', 'camelot', 'merlin', 'king arthur', 'medieval', 'knights',
+      'kingdom', 'kingdoms', 'prince', 'princess', 'royalty', 'throne',
+      'prophecy', 'chosen one', 'dark lord', 'necromancer', 'necromancy',
+      'shapeshifter', 'shapeshifting', 'werewolf fantasy', 'vampire fantasy',
+      'portal fantasy', 'secondary world', 'alternate world', 'other world',
+      'sword', 'swords', 'enchanted', 'enchantment', 'spellcaster', 'spells',
+      'demons', 'angels', 'gods', 'goddesses', 'pantheon', 'divine',
+      'elemental', 'elementals', 'druid', 'druids', 'shaman', 'shamanic',
+      'unicorn', 'phoenix', 'griffin', 'gryphon', 'pegasus', 'mythical creatures',
+      'dwarves', 'dwarf', 'halfling', 'hobbit', 'orc', 'orcs', 'goblin', 'goblins',
+      'troll', 'trolls', 'giant', 'giants', 'ogre', 'ogres',
+      'castle', 'tower', 'dungeon', 'labyrinth', 'maze',
+      'cursed', 'curse', 'blessing', 'artifact', 'magical artifact', 'talisman',
+      'grimoire', 'spellbook', 'wand', 'staff', 'amulet', 'ring of power',
+      'portal', 'dimension', 'realm', 'otherworld', 'underworld', 'overworld'
+    ],
+    contains: ['fantasy', 'magic', 'wizard', 'witch', 'dragon', 'elf', 'elv', 'sword', 'sorcery', 'fairy', 'fae', 'myth']
+  }
+};
+
+// Priority order for tie-breaking (most specific first)
+const GENRE_PRIORITY = ['litrpg', 'horror', 'mystery', 'thriller', 'post-apocalyptic', 'romance', 'science-fiction', 'fantasy'];
+
+/**
  * Map ISFDB tags to our genre categories
- * Returns the best matching genre for a list of tags, or undefined if no match
+ * Uses both exact matching and substring matching for better coverage
  * 
- * Strategy: Count matches per genre and pick the one with most matches.
- * If tied, use priority order. This prevents a single "romance" tag from
- * overriding multiple "fantasy" indicators.
+ * Strategy: 
+ * 1. Score each genre based on exact and partial tag matches
+ * 2. Exact matches score 2 points, partial matches score 1 point
+ * 3. Pick genre with highest score, use priority for ties
  */
 export function mapTagsToGenre(tags: string[]): string | undefined {
   if (!tags || tags.length === 0) return undefined;
   
-  const tagSet = new Set(tags.map(t => t.toLowerCase()));
-  
-  // Genre tag mappings - each tag maps to a genre
-  const genreTagMap: Record<string, string[]> = {
-    'litrpg': ['litrpg', 'gamelit', 'progression fantasy', 'cultivation', 'dungeon core'],
-    'post-apocalyptic': ['post-apocalyptic', 'apocalyptic', 'post apocalypse', 'dystopia', 'dystopian', 'zombie', 'zombies'],
-    'horror': ['horror', 'supernatural horror', 'gothic', 'cosmic horror', 'lovecraftian', 'cthulhu mythos', 'vampires', 'werewolf', 'haunted', 'ghosts'],
-    'mystery': ['mystery', 'detective', 'crime fiction', 'whodunit', 'sleuth', 'noir'],
-    'thriller': ['thriller', 'suspense', 'spy fiction', 'espionage', 'spy', 'assassin'],
-    'romance': ['romance', 'paranormal romance', 'romantic fantasy'],
-    'science-fiction': [
-      'science fiction', 'sf', 'sci-fi', 'space opera', 'hard sf', 
-      'hard science fiction', 'military sf', 'cyberpunk', 'space exploration',
-      'alien contact', 'first contact', 'time travel', 'robots', 'ai',
-      'nanotechnology', 'colonization', 'galactic empire', 'far future',
-      'interstellar travel', 'aliens', 'alien', 'space war', 'space warfare',
-      'terraforming', 'mars', 'near future', 'artificial intelligence',
-      'alternate history', 'parallel universe', 'parallel universes',
-      'young-adult sf', 'juvenile sf'
-    ],
-    'fantasy': [
-      'fantasy', 'epic fantasy', 'high fantasy', 'urban fantasy', 
-      'sword and sorcery', 'heroic fantasy', 'magic', 'magical',
-      'dragons', 'elves', 'wizards', 'quest', 'witches', 'sorcery',
-      'humorous fantasy', 'historical fantasy', 'gaslamp fantasy',
-      'young-adult fantasy', 'juvenile fantasy', 'dark fantasy'
-    ],
-  };
-  
-  // Priority order for tie-breaking (most specific first)
-  const genrePriority = ['litrpg', 'horror', 'mystery', 'thriller', 'post-apocalyptic', 'romance', 'science-fiction', 'fantasy'];
-  
-  // Count matches per genre
+  const normalizedTags = tags.map(t => t.toLowerCase().trim());
   const genreScores: Record<string, number> = {};
   
-  for (const [genre, genreTags] of Object.entries(genreTagMap)) {
+  for (const [genre, patterns] of Object.entries(GENRE_TAG_MAP)) {
     let score = 0;
-    for (const gTag of genreTags) {
-      if (tagSet.has(gTag)) {
-        score++;
+    
+    // Check exact matches (2 points each)
+    for (const exactTag of patterns.exact) {
+      if (normalizedTags.includes(exactTag)) {
+        score += 2;
       }
     }
+    
+    // Check partial/contains matches (1 point each, but only if not already matched)
+    for (const tag of normalizedTags) {
+      for (const partial of patterns.contains) {
+        if (tag.includes(partial) && !patterns.exact.includes(tag)) {
+          score += 1;
+          break; // Only count each tag once per genre
+        }
+      }
+    }
+    
     if (score > 0) {
       genreScores[genre] = score;
     }
@@ -453,22 +543,89 @@ export function mapTagsToGenre(tags: string[]): string | undefined {
   // Get all genres with max score
   const topGenres = Object.entries(genreScores)
     .filter(([_, score]) => score === maxScore)
-    .map(([genre, _]) => genre);
+    .map(([genre]) => genre);
   
-  // If only one, return it
+  // Single winner
   if (topGenres.length === 1) {
     return topGenres[0];
   }
   
   // Tie-break by priority
-  for (const genre of genrePriority) {
+  for (const genre of GENRE_PRIORITY) {
     if (topGenres.includes(genre)) {
       return genre;
     }
   }
   
-  // Fallback to first match
   return topGenres[0];
+}
+
+/**
+ * Analyze series name to guess genre when tags are unavailable
+ * Uses keyword patterns in the series name itself
+ */
+export function guessGenreFromName(seriesName: string): string | undefined {
+  const name = seriesName.toLowerCase();
+  
+  // LitRPG patterns (highest priority)
+  if (/\b(litrpg|gamelit|dungeon\s*core|cultivation|system\s*apocalypse|tower|isekai)\b/.test(name)) {
+    return 'litrpg';
+  }
+  
+  // Post-apocalyptic patterns
+  if (/\b(apocalypse|apocalyptic|post-?apocal|wasteland|zombie|undead|survivor|collapse|extinction)\b/.test(name)) {
+    return 'post-apocalyptic';
+  }
+  
+  // Horror patterns
+  if (/\b(horror|nightmare|terror|haunt|ghost|demon|vampire|werewolf|monster|dark|evil|death|dead|blood|shadow|fear)\b/.test(name)) {
+    // But not if clearly fantasy (e.g., "Dark Fantasy")
+    if (!/fantasy/.test(name)) {
+      return 'horror';
+    }
+  }
+  
+  // Mystery patterns
+  if (/\b(mystery|mysteries|detective|murder|crime|sleuth|investigation|noir|whodunit)\b/.test(name)) {
+    return 'mystery';
+  }
+  
+  // Thriller patterns
+  if (/\b(thriller|suspense|spy|espionage|assassin|conspiracy)\b/.test(name)) {
+    return 'thriller';
+  }
+  
+  // Science fiction patterns (before fantasy to catch sci-fi specific terms)
+  if (/\b(space|star|galactic|starship|planet|alien|robot|android|cyber|future|colony|empire|federation|fleet|ship|universe|quantum|dimension|warp|hyperspace|mech|tech)\b/.test(name)) {
+    // Exclude fantasy-ish terms
+    if (!/\b(magic|wizard|witch|dragon|elf|sword|fantasy|quest)\b/.test(name)) {
+      return 'science-fiction';
+    }
+  }
+  
+  // Fantasy patterns (broadest, last check)
+  if (/\b(fantasy|magic|wizard|witch|dragon|elf|elven|dwarf|orc|quest|kingdom|throne|crown|sword|sorcery|mage|knight|castle|realm|prophecy|chosen|fae|fairy|folk|myth|legend|enchant)\b/.test(name)) {
+    return 'fantasy';
+  }
+  
+  // Romance patterns
+  if (/\b(romance|love|heart|passion|bride|wedding)\b/.test(name)) {
+    return 'romance';
+  }
+  
+  return undefined;
+}
+
+/**
+ * Combined genre detection: tries tags first, then falls back to name analysis
+ */
+export function detectGenre(tags: string[] | undefined, seriesName: string): string | undefined {
+  // First try tags
+  const fromTags = tags ? mapTagsToGenre(tags) : undefined;
+  if (fromTags) return fromTags;
+  
+  // Fall back to name analysis
+  return guessGenreFromName(seriesName);
 }
 
 /**

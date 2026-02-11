@@ -6,7 +6,7 @@
 import { initDatabase, getStats, closeDatabase, upsertSeries, upsertSeriesBook, findSeriesByName, getSeriesNeedingVerification, storeSourceData, getDb } from './database/db.js';
 import { fetchSeries as fetchLibraryThing } from './sources/librarything.js';
 import { fetchSeries as fetchOpenLibrary } from './sources/openLibrary.js';
-import { fetchSeries as fetchISFDB, browseSeriesByGenre, fetchSeriesById, genreKeywords, discoverSeriesFromAuthors, scanSeriesRange, fetchPopularAuthors, fetchAuthorSeries, mapTagsToGenre } from './sources/isfdb.js';
+import { fetchSeries as fetchISFDB, browseSeriesByGenre, fetchSeriesById, genreKeywords, discoverSeriesFromAuthors, scanSeriesRange, fetchPopularAuthors, fetchAuthorSeries, mapTagsToGenre, detectGenre, guessGenreFromName } from './sources/isfdb.js';
 import { checkFlareSolverr } from './sources/flareSolverr.js';
 import { compareSources, needsTalpaVerification } from './reconciler/matcher.js';
 import { config } from './config.js';
@@ -57,6 +57,16 @@ async function main() {
       await runRetagFromISFDB(retagLimit);
       break;
 
+    case 'autotag':
+      // Tag all untagged series using name analysis only (fast, no network)
+      await runAutoTagFromNames();
+      break;
+
+    case 'daily':
+      // Automated daily job: discover new series + tag untagged
+      await runDailyJob();
+      break;
+
     case 'save':
       await saveSeriesFromTest(args[1]);
       break;
@@ -73,6 +83,8 @@ async function main() {
       console.log('  discover [mode]   Discover series (modes: authors, scan, seed)');
       console.log('  tag [genre]       Tag untagged series with genres using keyword matching');
       console.log('  retag             Re-fetch ISFDB tags for untagged series');
+      console.log('  autotag           Tag all untagged series from name analysis (fast)');
+      console.log('  daily             Run automated daily job (discover + tag)');
       console.log('');
       console.log('Options:');
       console.log('  --save            Save discovered series to database');
@@ -573,8 +585,8 @@ async function runDiscover(mode: string, saveToDb = false, limit = 100, genre?: 
     const yearStart = years.length > 0 ? Math.min(...years) : undefined;
     const yearEnd = years.length > 0 ? Math.max(...years) : undefined;
     
-    // Determine genre: use provided genre, or auto-detect from ISFDB tags
-    const detectedGenre = genre || (series.tags ? mapTagsToGenre(series.tags) : undefined);
+    // Determine genre: use provided genre, or auto-detect from ISFDB tags, or guess from name
+    const detectedGenre = genre || detectGenre(series.tags, series.name);
     
     // Save to database WITH GENRE if provided or detected
     const seriesId = upsertSeries({
@@ -751,10 +763,12 @@ async function runTagGenres(targetGenre?: string) {
 
 /**
  * Re-fetch ISFDB tags for untagged series and apply genre classification
+ * Uses multi-strategy approach: ISFDB tags → name analysis
  */
 async function runRetagFromISFDB(limit = 100) {
-  console.log('🔄 Re-tagging series from ISFDB tags...');
+  console.log('🔄 Re-tagging series from ISFDB...');
   console.log(`📊 Limit: ${limit} series`);
+  console.log('Strategy: ISFDB tags → Name analysis fallback');
   console.log('─'.repeat(50));
   
   const db = getDb();
@@ -770,8 +784,9 @@ async function runRetagFromISFDB(limit = 100) {
   
   console.log(`Found ${untagged.length} untagged series with ISFDB IDs\n`);
   
-  let tagged = 0;
-  let noTags = 0;
+  let taggedFromISFDB = 0;
+  let taggedFromName = 0;
+  let noMatch = 0;
   let errors = 0;
   const genreCounts: Record<string, number> = {};
   
@@ -784,25 +799,37 @@ async function runRetagFromISFDB(limit = 100) {
       const result = await fetchSeriesById(series.isfdb_id);
       
       if (result.error || !result.series) {
-        console.log(`${progress} ❌ ${series.name}: ${result.error || 'No data'}`);
-        errors++;
+        // Can't fetch, try name-based detection
+        const genreFromName = guessGenreFromName(series.name);
+        if (genreFromName) {
+          db.prepare("UPDATE series SET genre = ?, updated_at = datetime('now') WHERE id = ?")
+            .run(genreFromName, series.id);
+          console.log(`${progress} 📝 ${series.name} → ${genreFromName} (from name)`);
+          taggedFromName++;
+          genreCounts[genreFromName] = (genreCounts[genreFromName] || 0) + 1;
+        } else {
+          console.log(`${progress} ❌ ${series.name}: ${result.error || 'No data'}`);
+          errors++;
+        }
         continue;
       }
       
       const tags = result.series.tags;
       
-      if (!tags || tags.length === 0) {
-        console.log(`${progress} ⏭️  ${series.name} (no tags)`);
-        noTags++;
-        continue;
+      // Try tag-based detection first
+      let genre = tags && tags.length > 0 ? mapTagsToGenre(tags) : undefined;
+      let source = 'tags';
+      
+      // Fall back to name analysis
+      if (!genre) {
+        genre = guessGenreFromName(series.name);
+        source = 'name';
       }
       
-      // Map tags to genre
-      const genre = mapTagsToGenre(tags);
-      
       if (!genre) {
-        console.log(`${progress} ⏭️  ${series.name} (tags: ${tags.join(', ')} - no genre match)`);
-        noTags++;
+        const tagInfo = tags && tags.length > 0 ? ` (tags: ${tags.slice(0, 3).join(', ')})` : '';
+        console.log(`${progress} ⏭️  ${series.name}${tagInfo} - no match`);
+        noMatch++;
         continue;
       }
       
@@ -810,13 +837,28 @@ async function runRetagFromISFDB(limit = 100) {
       db.prepare("UPDATE series SET genre = ?, updated_at = datetime('now') WHERE id = ?")
         .run(genre, series.id);
       
-      console.log(`${progress} 🏷️  ${series.name} → ${genre} (from: ${tags.slice(0, 3).join(', ')})`);
-      tagged++;
+      if (source === 'tags') {
+        console.log(`${progress} 🏷️  ${series.name} → ${genre} (from: ${tags!.slice(0, 3).join(', ')})`);
+        taggedFromISFDB++;
+      } else {
+        console.log(`${progress} 📝 ${series.name} → ${genre} (from name)`);
+        taggedFromName++;
+      }
       genreCounts[genre] = (genreCounts[genre] || 0) + 1;
       
     } catch (error) {
-      console.log(`${progress} ❌ ${series.name}: ${error}`);
-      errors++;
+      // On error, still try name-based detection
+      const genreFromName = guessGenreFromName(series.name);
+      if (genreFromName) {
+        db.prepare("UPDATE series SET genre = ?, updated_at = datetime('now') WHERE id = ?")
+          .run(genreFromName, series.id);
+        console.log(`${progress} 📝 ${series.name} → ${genreFromName} (from name, after error)`);
+        taggedFromName++;
+        genreCounts[genreFromName] = (genreCounts[genreFromName] || 0) + 1;
+      } else {
+        console.log(`${progress} ❌ ${series.name}: ${error}`);
+        errors++;
+      }
     }
   }
   
@@ -824,12 +866,120 @@ async function runRetagFromISFDB(limit = 100) {
   console.log('─'.repeat(50));
   console.log('📊 Re-tagging Summary:');
   console.log(`  Processed: ${untagged.length}`);
-  console.log(`  Tagged: ${tagged}`);
-  console.log(`  No tags/match: ${noTags}`);
+  console.log(`  Tagged from ISFDB tags: ${taggedFromISFDB}`);
+  console.log(`  Tagged from name analysis: ${taggedFromName}`);
+  console.log(`  Total tagged: ${taggedFromISFDB + taggedFromName}`);
+  console.log(`  No match: ${noMatch}`);
   console.log(`  Errors: ${errors}`);
   console.log('');
-  console.log('Tags by genre:');
-  for (const [g, count] of Object.entries(genreCounts)) {
+  console.log('By genre:');
+  for (const [g, count] of Object.entries(genreCounts).sort((a, b) => b[1] - a[1])) {
     console.log(`  ${g}: ${count}`);
   }
+}
+
+/**
+ * Fast auto-tagging using name analysis only (no network requests)
+ * Tags all untagged series based on keywords in their names
+ */
+async function runAutoTagFromNames() {
+  console.log('🚀 Auto-tagging series from names (fast mode)...');
+  console.log('─'.repeat(50));
+  
+  const db = getDb();
+  
+  // Get ALL untagged series
+  const stmt = db.prepare(`SELECT id, name FROM series WHERE genre IS NULL`);
+  const untagged = stmt.all() as Array<{ id: number; name: string }>;
+  
+  console.log(`Found ${untagged.length} untagged series\n`);
+  
+  let tagged = 0;
+  const genreCounts: Record<string, number> = {};
+  
+  for (const series of untagged) {
+    const genre = guessGenreFromName(series.name);
+    
+    if (genre) {
+      db.prepare("UPDATE series SET genre = ?, updated_at = datetime('now') WHERE id = ?")
+        .run(genre, series.id);
+      tagged++;
+      genreCounts[genre] = (genreCounts[genre] || 0) + 1;
+    }
+  }
+  
+  console.log('📊 Auto-tagging Summary:');
+  console.log(`  Processed: ${untagged.length}`);
+  console.log(`  Tagged: ${tagged}`);
+  console.log(`  Remaining untagged: ${untagged.length - tagged}`);
+  console.log('');
+  console.log('By genre:');
+  for (const [g, count] of Object.entries(genreCounts).sort((a, b) => b[1] - a[1])) {
+    console.log(`  ${g}: ${count}`);
+  }
+}
+
+/**
+ * Automated daily job for self-sufficient operation
+ * 1. Discover new series from popular authors
+ * 2. Auto-tag any untagged series
+ * 3. Report stats
+ */
+async function runDailyJob() {
+  const startTime = Date.now();
+  console.log('🤖 Running automated daily job...');
+  console.log(`📅 ${new Date().toISOString()}`);
+  console.log('═'.repeat(60));
+  
+  const db = getDb();
+  const statsBefore = getStats();
+  
+  // Phase 1: Discover new series (limited to avoid rate limiting)
+  console.log('\n📡 Phase 1: Discovering new series from popular authors...');
+  console.log('─'.repeat(50));
+  
+  try {
+    await runDiscover('authors', true, 50); // 50 authors, save to DB
+  } catch (error) {
+    console.log(`⚠️ Discovery phase had issues: ${error}`);
+  }
+  
+  // Phase 2: Auto-tag untagged series
+  console.log('\n🏷️ Phase 2: Auto-tagging untagged series...');
+  console.log('─'.repeat(50));
+  
+  await runAutoTagFromNames();
+  
+  // Phase 3: Try ISFDB tags for remaining untagged (limited)
+  console.log('\n🔄 Phase 3: Fetching ISFDB tags for remaining untagged...');
+  console.log('─'.repeat(50));
+  
+  try {
+    await runRetagFromISFDB(100); // 100 series at a time
+  } catch (error) {
+    console.log(`⚠️ ISFDB retag phase had issues: ${error}`);
+  }
+  
+  // Final stats
+  const statsAfter = getStats();
+  const elapsed = ((Date.now() - startTime) / 1000 / 60).toFixed(1);
+  
+  console.log('\n═'.repeat(60));
+  console.log('📊 Daily Job Complete!');
+  console.log('─'.repeat(50));
+  console.log(`  Duration: ${elapsed} minutes`);
+  console.log(`  Series: ${statsBefore.totalSeries} → ${statsAfter.totalSeries} (+${statsAfter.totalSeries - statsBefore.totalSeries})`);
+  console.log(`  Books: ${statsBefore.totalBooks} → ${statsAfter.totalBooks} (+${statsAfter.totalBooks - statsBefore.totalBooks})`);
+  console.log('');
+  console.log('Series by genre:');
+  for (const [genre, count] of Object.entries(statsAfter.seriesByGenre || {}).sort((a, b) => b[1] - a[1])) {
+    const before = (statsBefore.seriesByGenre as Record<string, number>)?.[genre] || 0;
+    const diff = count - before;
+    const diffStr = diff > 0 ? ` (+${diff})` : '';
+    console.log(`  ${genre}: ${count}${diffStr}`);
+  }
+  
+  // Count remaining untagged
+  const untaggedCount = db.prepare(`SELECT COUNT(*) as count FROM series WHERE genre IS NULL`).get() as { count: number };
+  console.log(`\n  Untagged: ${untaggedCount.count}`);
 }
