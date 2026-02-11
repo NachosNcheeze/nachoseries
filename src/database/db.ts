@@ -635,3 +635,169 @@ export function findSeriesForBook(
     } as SeriesRecord,
   };
 }
+
+// =============================================================================
+// Goodreads Import / On-Demand Lookup
+// =============================================================================
+
+import type { SourceSeries } from '../types.js';
+
+/**
+ * Save a series fetched from Goodreads (or other source) to the database
+ * Returns the series ID
+ */
+export function saveSourceSeries(
+  sourceSeries: SourceSeries,
+  goodreadsId?: string
+): string {
+  const db = getDb();
+  
+  // Determine author from series or first book
+  const author = sourceSeries.author || sourceSeries.books[0]?.author || null;
+  
+  // Determine year range
+  const years = sourceSeries.books
+    .map(b => b.yearPublished)
+    .filter((y): y is number => y !== undefined && y !== null);
+  const yearStart = years.length > 0 ? Math.min(...years) : null;
+  const yearEnd = years.length > 0 ? Math.max(...years) : null;
+  
+  // Check if series already exists by name
+  const existing = findSeriesByName(sourceSeries.name);
+  const seriesId = existing?.id || randomUUID();
+  
+  // Upsert the series
+  upsertSeries({
+    id: seriesId,
+    name: sourceSeries.name,
+    author,
+    total_books: sourceSeries.books.length,
+    year_start: yearStart,
+    year_end: yearEnd,
+    description: sourceSeries.description || null,
+    confidence: 0.8, // Goodreads data is reliable
+    // Store goodreads ID in a source field (we'll use librarything_id for now, could add goodreads_id column later)
+  });
+  
+  // Store goodreads source ID in source_data table if provided
+  if (goodreadsId) {
+    try {
+      storeSourceData(seriesId, 'goodreads', { goodreadsId, url: `https://www.goodreads.com/series/${goodreadsId}` }, sourceSeries.books.length);
+    } catch {
+      // Ignore if already exists
+    }
+  }
+  
+  // Upsert all books in the series
+  for (const book of sourceSeries.books) {
+    upsertSeriesBook({
+      series_id: seriesId,
+      title: book.title,
+      author: book.author || author,
+      position: book.position ?? null,
+      year_published: book.yearPublished ?? null,
+      isbn: book.isbn || null,
+      confidence: 0.8,
+    });
+  }
+  
+  console.log(`[DB] Saved series "${sourceSeries.name}" with ${sourceSeries.books.length} books (ID: ${seriesId})`);
+  
+  return seriesId;
+}
+
+/**
+ * Search for a series by book title (fuzzy match across all books)
+ */
+export function findSeriesByBookTitle(title: string, author?: string): { series: SeriesRecord; book: SeriesBookRecord } | null {
+  const db = getDb();
+  const normalizedTitle = normalizeText(title);
+  const normalizedAuthor = author ? normalizeText(author) : null;
+  
+  // First try exact title match
+  let stmt = db.prepare(`
+    SELECT sb.*, s.id as s_id, s.name as s_name, s.name_normalized as s_name_normalized,
+           s.author as s_author, s.author_normalized as s_author_normalized, s.genre as s_genre,
+           s.total_books as s_total_books, s.year_start as s_year_start, s.year_end as s_year_end,
+           s.description as s_description, s.confidence as s_confidence, s.verified as s_verified,
+           s.isfdb_id as s_isfdb_id, s.librarything_id as s_librarything_id, s.openlibrary_key as s_openlibrary_key
+    FROM series_book sb
+    JOIN series s ON sb.series_id = s.id
+    WHERE sb.title_normalized = ?
+    ${normalizedAuthor ? 'AND (sb.author IS NULL OR LOWER(sb.author) LIKE ?)' : ''}
+    LIMIT 1
+  `);
+  
+  const params: (string | null)[] = [normalizedTitle];
+  if (normalizedAuthor) {
+    params.push(`%${normalizedAuthor}%`);
+  }
+  
+  let row = stmt.get(...params) as Record<string, unknown> | undefined;
+  
+  // If no exact match, try fuzzy match
+  if (!row) {
+    stmt = db.prepare(`
+      SELECT sb.*, s.id as s_id, s.name as s_name, s.name_normalized as s_name_normalized,
+             s.author as s_author, s.author_normalized as s_author_normalized, s.genre as s_genre,
+             s.total_books as s_total_books, s.year_start as s_year_start, s.year_end as s_year_end,
+             s.description as s_description, s.confidence as s_confidence, s.verified as s_verified,
+             s.isfdb_id as s_isfdb_id, s.librarything_id as s_librarything_id, s.openlibrary_key as s_openlibrary_key
+      FROM series_book sb
+      JOIN series s ON sb.series_id = s.id
+      WHERE sb.title_normalized LIKE ?
+      ${normalizedAuthor ? 'AND (sb.author IS NULL OR LOWER(sb.author) LIKE ?)' : ''}
+      ORDER BY sb.confidence DESC
+      LIMIT 1
+    `);
+    
+    const fuzzyParams: (string | null)[] = [`%${normalizedTitle}%`];
+    if (normalizedAuthor) {
+      fuzzyParams.push(`%${normalizedAuthor}%`);
+    }
+    
+    row = stmt.get(...fuzzyParams) as Record<string, unknown> | undefined;
+  }
+  
+  if (!row) {
+    return null;
+  }
+  
+  return {
+    book: {
+      id: row.id,
+      series_id: row.series_id,
+      position: row.position,
+      title: row.title,
+      title_normalized: row.title_normalized,
+      author: row.author,
+      year_published: row.year_published,
+      ebook_known: row.ebook_known,
+      audiobook_known: row.audiobook_known,
+      openlibrary_key: row.openlibrary_key,
+      librarything_id: row.librarything_id,
+      audible_asin: row.audible_asin,
+      isbn: row.isbn,
+      confidence: row.confidence,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+    } as SeriesBookRecord,
+    series: {
+      id: row.s_id,
+      name: row.s_name,
+      name_normalized: row.s_name_normalized,
+      author: row.s_author,
+      author_normalized: row.s_author_normalized,
+      genre: row.s_genre,
+      total_books: row.s_total_books,
+      year_start: row.s_year_start,
+      year_end: row.s_year_end,
+      description: row.s_description,
+      confidence: row.s_confidence,
+      verified: row.s_verified,
+      isfdb_id: row.s_isfdb_id,
+      librarything_id: row.s_librarything_id,
+      openlibrary_key: row.s_openlibrary_key,
+    } as SeriesRecord,
+  };
+}

@@ -15,8 +15,11 @@ import {
   getAllSeries,
   getBooksByGenre,
   countBooksByGenre,
-  findSeriesForBook
+  findSeriesForBook,
+  findSeriesByBookTitle,
+  saveSourceSeries
 } from './database/db.js';
+import { fetchSeries as fetchGoodreadsSeries } from './sources/goodreads.js';
 
 const PORT = parseInt(process.env.NACHOSERIES_PORT || '5057');
 
@@ -99,9 +102,67 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
       return;
     }
 
+    // On-demand lookup: check local DB first, then Goodreads, cache result
+    if (path === '/api/lookup') {
+      const title = url.searchParams.get('title');
+      const author = url.searchParams.get('author') || undefined;
+      
+      if (!title) {
+        sendError(res, 'Missing query parameter: title');
+        return;
+      }
+      
+      console.log(`[API] Lookup request: "${title}"${author ? ` by ${author}` : ''}`);
+      
+      // Step 1: Check local database first
+      const localResult = findSeriesByBookTitle(title, author);
+      if (localResult) {
+        console.log(`[API] Found in local DB: "${localResult.series.name}"`);
+        const fullSeries = getSeriesWithBooks(localResult.series.id);
+        sendJSON(res, { 
+          found: true, 
+          source: 'cache',
+          series: fullSeries, 
+          book: localResult.book 
+        });
+        return;
+      }
+      
+      // Step 2: Not in local DB, try Goodreads
+      console.log(`[API] Not in local DB, querying Goodreads...`);
+      try {
+        const goodreadsResult = await fetchGoodreadsSeries(title, author);
+        
+        if (goodreadsResult && goodreadsResult.books.length > 0) {
+          // Save to database (cache it)
+          const seriesId = saveSourceSeries(goodreadsResult, goodreadsResult.sourceId);
+          
+          // Return the newly cached series
+          const fullSeries = getSeriesWithBooks(seriesId);
+          const book = findSeriesByBookTitle(title, author);
+          
+          sendJSON(res, { 
+            found: true, 
+            source: 'goodreads',
+            series: fullSeries, 
+            book: book?.book || null 
+          });
+          return;
+        }
+        
+        // Not found anywhere
+        console.log(`[API] Not found on Goodreads either`);
+        sendJSON(res, { found: false, source: 'none', series: null, book: null });
+        return;
+        
+      } catch (error) {
+        console.error(`[API] Goodreads lookup failed:`, error);
+        sendJSON(res, { found: false, source: 'error', series: null, book: null, error: 'Goodreads lookup failed' });
+        return;
+      }
+    }
 
-
-    // Find series for a book by title/author
+    // Find series for a book by title/author (local DB only, no external lookup)
     if (path === '/api/series/for-book') {
       const title = url.searchParams.get('title');
       const author = url.searchParams.get('author') || undefined;
@@ -208,9 +269,11 @@ export function startServer(): void {
     console.log('Endpoints:');
     console.log('  GET /api/health         - Health check');
     console.log('  GET /api/stats          - Database statistics');
+    console.log('  GET /api/lookup         - On-demand lookup (DB + Goodreads fallback)');
     console.log('  GET /api/series         - List all series (paginated)');
     console.log('  GET /api/series/search  - Search series by name');
     console.log('  GET /api/series/byName  - Get series by exact name');
+    console.log('  GET /api/series/for-book - Find series for a book title');
     console.log('  GET /api/series/:id     - Get series by ID');
     console.log('');
   });

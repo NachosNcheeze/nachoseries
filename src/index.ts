@@ -7,6 +7,7 @@ import { initDatabase, getStats, closeDatabase, upsertSeries, upsertSeriesBook, 
 import { fetchSeries as fetchLibraryThing } from './sources/librarything.js';
 import { fetchSeries as fetchOpenLibrary } from './sources/openLibrary.js';
 import { fetchSeries as fetchISFDB, browseSeriesByGenre, fetchSeriesById, genreKeywords, discoverSeriesFromAuthors, scanSeriesRange, fetchPopularAuthors, fetchAuthorSeries, mapTagsToGenre, detectGenre, guessGenreFromName } from './sources/isfdb.js';
+import { fetchSeries as fetchGoodreads, testGoodreads } from './sources/goodreads.js';
 import { lookupGenreForSeries } from './sources/genreLookup.js';
 import { shouldFilterSeries, detectLanguage, getNonEnglishSqlPatterns } from './utils/languageFilter.js';
 import { checkFlareSolverr } from './sources/flareSolverr.js';
@@ -34,6 +35,11 @@ async function main() {
       
     case 'test':
       await runTestFetch(args[1]);
+      break;
+    
+    case 'goodreads':
+      // Test Goodreads scraper with a book title
+      await testGoodreads(args[1] || 'Awaken Online', args[2]);
       break;
       
     case 'crawl':
@@ -84,12 +90,21 @@ async function main() {
     case 'save':
       await saveSeriesFromTest(args[1]);
       break;
+
+    case 'serve':
+    case 'api':
+      // Start the API server
+      const { startServer } = await import('./api.js');
+      closeDatabase(); // Close CLI connection, API will open its own
+      startServer();
+      return; // Don't close database or exit
       
     default:
       console.log('Usage: nachoseries <command>');
       console.log('');
       console.log('Commands:');
       console.log('  status            Show database statistics');
+      console.log('  serve / api       Start the HTTP API server');
       console.log('  test [series]     Test fetch a specific series');
       console.log('  crawl [genre]     Crawl series for a genre (--save to persist)');
       console.log('  save [series]     Fetch and save a specific series');
