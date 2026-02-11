@@ -396,3 +396,168 @@ export async function browseSeriesByGenre(genre: string): Promise<Array<{ id: st
   console.log(`[ISFDB] Total unique series for genre "${genre}": ${allSeries.length}`);
   return allSeries;
 }
+/**
+ * Fetch list of popular authors (top novel authors)
+ * Returns author IDs and names
+ */
+export async function fetchPopularAuthors(limit = 500): Promise<Array<{ id: string; name: string }>> {
+  await rateLimit();
+  
+  const url = `${BASE_URL}/cgi-bin/popular_authors.cgi?1+all`;
+  
+  console.log(`[ISFDB] Fetching popular authors list...`);
+  
+  const response = await fetch(url, {
+    headers: {
+      'User-Agent': 'NachoSeries/0.1.0 (Series Indexer)',
+    },
+  });
+  
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+  
+  const html = await response.text();
+  const $ = cheerio.load(html);
+  
+  const authors: Array<{ id: string; name: string }> = [];
+  
+  // Author links follow pattern ea.cgi?{id}
+  $('a[href*="ea.cgi"]').each((_, el) => {
+    if (authors.length >= limit) return;
+    
+    const href = $(el).attr('href');
+    const name = $(el).text().trim();
+    const match = href?.match(/ea\.cgi\?(\d+)/);
+    
+    if (match && name && name.length > 0) {
+      // Skip if already seen (there can be duplicates)
+      if (!authors.find(a => a.id === match[1])) {
+        authors.push({ id: match[1], name });
+      }
+    }
+  });
+  
+  console.log(`[ISFDB] Found ${authors.length} popular authors`);
+  return authors;
+}
+
+/**
+ * Fetch all series by a specific author
+ */
+export async function fetchAuthorSeries(authorId: string): Promise<Array<{ id: string; name: string }>> {
+  await rateLimit();
+  
+  const url = `${BASE_URL}/cgi-bin/ea.cgi?${authorId}`;
+  
+  const response = await fetch(url, {
+    headers: {
+      'User-Agent': 'NachoSeries/0.1.0 (Series Indexer)',
+    },
+  });
+  
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+  
+  const html = await response.text();
+  const $ = cheerio.load(html);
+  
+  const series: Array<{ id: string; name: string }> = [];
+  
+  // Series links use pe.cgi?{id} format
+  $('a[href*="pe.cgi"]').each((_, el) => {
+    const href = $(el).attr('href');
+    const name = $(el).text().trim();
+    const match = href?.match(/pe\.cgi\?(\d+)/);
+    
+    // Skip pe.cgi?0 which is "no series"
+    if (match && match[1] !== '0' && name && name.length > 0) {
+      if (!series.find(s => s.id === match[1])) {
+        series.push({ id: match[1], name });
+      }
+    }
+  });
+  
+  return series;
+}
+
+/**
+ * Discovery mode: crawl popular authors and collect all their series
+ */
+export async function discoverSeriesFromAuthors(
+  maxAuthors = 100,
+  onProgress?: (current: number, total: number, author: string, seriesCount: number) => void
+): Promise<Array<{ id: string; name: string; author: string }>> {
+  const authors = await fetchPopularAuthors(maxAuthors);
+  const allSeries: Array<{ id: string; name: string; author: string }> = [];
+  const seenIds = new Set<string>();
+  
+  for (let i = 0; i < authors.length; i++) {
+    const author = authors[i];
+    
+    try {
+      const series = await fetchAuthorSeries(author.id);
+      
+      for (const s of series) {
+        if (!seenIds.has(s.id)) {
+          seenIds.add(s.id);
+          allSeries.push({ ...s, author: author.name });
+        }
+      }
+      
+      onProgress?.(i + 1, authors.length, author.name, series.length);
+    } catch (error) {
+      console.error(`[ISFDB] Failed to fetch series for author ${author.name}: ${error}`);
+    }
+  }
+  
+  console.log(`[ISFDB] Discovered ${allSeries.length} unique series from ${authors.length} authors`);
+  return allSeries;
+}
+
+/**
+ * Scan series IDs directly (for comprehensive discovery)
+ * Series IDs are sequential, so we can scan a range
+ */
+export async function scanSeriesRange(
+  startId: number,
+  endId: number,
+  onProgress?: (current: number, total: number, found: number) => void
+): Promise<Array<{ id: string; name: string }>> {
+  const series: Array<{ id: string; name: string }> = [];
+  const total = endId - startId + 1;
+  
+  for (let id = startId; id <= endId; id++) {
+    await rateLimit();
+    
+    try {
+      const url = `${BASE_URL}/cgi-bin/pe.cgi?${id}`;
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'NachoSeries/0.1.0 (Series Indexer)',
+        },
+      });
+      
+      if (!response.ok) continue;
+      
+      const html = await response.text();
+      const $ = cheerio.load(html);
+      
+      // Check if it's a valid series page
+      const pageTitle = $('title').text();
+      if (pageTitle.startsWith('Series:')) {
+        const name = pageTitle.replace('Series:', '').trim();
+        if (name) {
+          series.push({ id: id.toString(), name });
+        }
+      }
+      
+      onProgress?.(id - startId + 1, total, series.length);
+    } catch (error) {
+      // Skip errors, series ID might not exist
+    }
+  }
+  
+  return series;
+}

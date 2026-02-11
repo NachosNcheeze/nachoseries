@@ -353,3 +353,285 @@ export function getStats(): DatabaseStats {
     avgConfidence,
   };
 }
+
+/**
+ * Search series by name (partial match)
+ */
+export function searchSeries(query: string, limit = 20): SeriesRecord[] {
+  const db = getDb();
+  const normalizedQuery = `%${normalizeText(query)}%`;
+  
+  const stmt = db.prepare(`
+    SELECT * FROM series 
+    WHERE name_normalized LIKE ?
+    ORDER BY confidence DESC, total_books DESC
+    LIMIT ?
+  `);
+  
+  return stmt.all(normalizedQuery, limit) as SeriesRecord[];
+}
+
+/**
+ * Get series with all its books
+ */
+export function getSeriesWithBooks(seriesId: number | string): { series: SeriesRecord; books: SeriesBookRecord[] } | null {
+  const db = getDb();
+  
+  const seriesStmt = db.prepare('SELECT * FROM series WHERE id = ?');
+  const series = seriesStmt.get(seriesId) as SeriesRecord | undefined;
+  
+  if (!series) {
+    return null;
+  }
+  
+  const books = getBooksInSeries(series.id);
+  
+  return { series, books };
+}
+
+/**
+ * Get all series with optional filtering and pagination
+ */
+export function getAllSeries(limit = 50, offset = 0, genre?: string): SeriesRecord[] {
+  const db = getDb();
+  
+  let sql = 'SELECT * FROM series';
+  const params: (string | number)[] = [];
+  
+  if (genre) {
+    sql += ' WHERE genre = ?';
+    params.push(genre);
+  }
+  
+  sql += ' ORDER BY confidence DESC, total_books DESC LIMIT ? OFFSET ?';
+  params.push(limit, offset);
+  
+  const stmt = db.prepare(sql);
+  return stmt.all(...params) as SeriesRecord[];
+}
+
+/**
+ * Get books by genre with their series info (for genre browsing)
+ */
+export function getBooksByGenre(genre: string, limit = 48, offset = 0): Array<{ book: SeriesBookRecord; series: SeriesRecord }> {
+  const db = getDb();
+  
+  const stmt = db.prepare(`
+    SELECT 
+      b.*,
+      s.id as s_id,
+      s.name as s_name,
+      s.name_normalized as s_name_normalized,
+      s.author as s_author,
+      s.author_normalized as s_author_normalized,
+      s.genre as s_genre,
+      s.total_books as s_total_books,
+      s.year_start as s_year_start,
+      s.year_end as s_year_end,
+      s.description as s_description,
+      s.confidence as s_confidence,
+      s.verified as s_verified,
+      s.isfdb_id as s_isfdb_id,
+      s.librarything_id as s_librarything_id,
+      s.openlibrary_key as s_openlibrary_key
+    FROM series_book b
+    JOIN series s ON b.series_id = s.id
+    WHERE s.genre = ?
+    ORDER BY s.confidence DESC, s.name ASC, b.position ASC
+    LIMIT ? OFFSET ?
+  `);
+  
+  const rows = stmt.all(genre, limit, offset) as any[];
+  
+  return rows.map(row => ({
+    book: {
+      id: row.id,
+      series_id: row.series_id,
+      position: row.position,
+      title: row.title,
+      title_normalized: row.title_normalized,
+      author: row.author,
+      year_published: row.year_published,
+      ebook_known: row.ebook_known,
+      audiobook_known: row.audiobook_known,
+      openlibrary_key: row.openlibrary_key,
+      librarything_id: row.librarything_id,
+      audible_asin: row.audible_asin,
+      isbn: row.isbn,
+      confidence: row.confidence,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+    } as SeriesBookRecord,
+    series: {
+      id: row.s_id,
+      name: row.s_name,
+      name_normalized: row.s_name_normalized,
+      author: row.s_author,
+      author_normalized: row.s_author_normalized,
+      genre: row.s_genre,
+      total_books: row.s_total_books,
+      year_start: row.s_year_start,
+      year_end: row.s_year_end,
+      description: row.s_description,
+      confidence: row.s_confidence,
+      verified: row.s_verified,
+      isfdb_id: row.s_isfdb_id,
+      librarything_id: row.s_librarything_id,
+      openlibrary_key: row.s_openlibrary_key,
+    } as SeriesRecord,
+  }));
+}
+
+/**
+ * Count total books in a genre
+ */
+export function countBooksByGenre(genre: string): number {
+  const db = getDb();
+  const stmt = db.prepare(`
+    SELECT COUNT(*) as count
+    FROM series_book b
+    JOIN series s ON b.series_id = s.id
+    WHERE s.genre = ?
+  `);
+  return (stmt.get(genre) as { count: number }).count;
+}
+
+/**
+ * Find series containing a book by title (and optionally author)
+ * Returns the series info and book position if found
+ */
+export function findSeriesForBook(
+  title: string, 
+  author?: string
+): { series: SeriesRecord; book: SeriesBookRecord } | null {
+  const db = getDb();
+  const normalizedTitle = normalizeText(title);
+  
+  // Try exact title match first
+  let stmt = db.prepare(`
+    SELECT 
+      b.*,
+      s.id as s_id,
+      s.name as s_name,
+      s.name_normalized as s_name_normalized,
+      s.author as s_author,
+      s.author_normalized as s_author_normalized,
+      s.genre as s_genre,
+      s.total_books as s_total_books,
+      s.year_start as s_year_start,
+      s.year_end as s_year_end,
+      s.description as s_description,
+      s.confidence as s_confidence,
+      s.verified as s_verified,
+      s.isfdb_id as s_isfdb_id,
+      s.librarything_id as s_librarything_id,
+      s.openlibrary_key as s_openlibrary_key
+    FROM series_book b
+    JOIN series s ON b.series_id = s.id
+    WHERE b.title_normalized = ?
+    ORDER BY s.confidence DESC
+    LIMIT 1
+  `);
+  
+  let row = stmt.get(normalizedTitle) as any;
+  
+  // If not found and author provided, try fuzzy title + author match
+  if (!row && author) {
+    const normalizedAuthor = normalizeText(author);
+    stmt = db.prepare(`
+      SELECT 
+        b.*,
+        s.id as s_id,
+        s.name as s_name,
+        s.name_normalized as s_name_normalized,
+        s.author as s_author,
+        s.author_normalized as s_author_normalized,
+        s.genre as s_genre,
+        s.total_books as s_total_books,
+        s.year_start as s_year_start,
+        s.year_end as s_year_end,
+        s.description as s_description,
+        s.confidence as s_confidence,
+        s.verified as s_verified,
+        s.isfdb_id as s_isfdb_id,
+        s.librarything_id as s_librarything_id,
+        s.openlibrary_key as s_openlibrary_key
+      FROM series_book b
+      JOIN series s ON b.series_id = s.id
+      WHERE b.title_normalized LIKE ?
+        AND (b.author LIKE ? OR s.author_normalized LIKE ?)
+      ORDER BY s.confidence DESC
+      LIMIT 1
+    `);
+    row = stmt.get(`%${normalizedTitle}%`, `%${normalizedAuthor}%`, `%${normalizedAuthor}%`) as any;
+  }
+  
+  // Still not found, try fuzzy title only
+  if (!row) {
+    stmt = db.prepare(`
+      SELECT 
+        b.*,
+        s.id as s_id,
+        s.name as s_name,
+        s.name_normalized as s_name_normalized,
+        s.author as s_author,
+        s.author_normalized as s_author_normalized,
+        s.genre as s_genre,
+        s.total_books as s_total_books,
+        s.year_start as s_year_start,
+        s.year_end as s_year_end,
+        s.description as s_description,
+        s.confidence as s_confidence,
+        s.verified as s_verified,
+        s.isfdb_id as s_isfdb_id,
+        s.librarything_id as s_librarything_id,
+        s.openlibrary_key as s_openlibrary_key
+      FROM series_book b
+      JOIN series s ON b.series_id = s.id
+      WHERE b.title_normalized LIKE ?
+      ORDER BY s.confidence DESC
+      LIMIT 1
+    `);
+    row = stmt.get(`%${normalizedTitle}%`) as any;
+  }
+  
+  if (!row) return null;
+  
+  return {
+    book: {
+      id: row.id,
+      series_id: row.series_id,
+      position: row.position,
+      title: row.title,
+      title_normalized: row.title_normalized,
+      author: row.author,
+      year_published: row.year_published,
+      ebook_known: row.ebook_known,
+      audiobook_known: row.audiobook_known,
+      openlibrary_key: row.openlibrary_key,
+      librarything_id: row.librarything_id,
+      audible_asin: row.audible_asin,
+      isbn: row.isbn,
+      confidence: row.confidence,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+    } as SeriesBookRecord,
+    series: {
+      id: row.s_id,
+      name: row.s_name,
+      name_normalized: row.s_name_normalized,
+      author: row.s_author,
+      author_normalized: row.s_author_normalized,
+      genre: row.s_genre,
+      total_books: row.s_total_books,
+      year_start: row.s_year_start,
+      year_end: row.s_year_end,
+      description: row.s_description,
+      confidence: row.s_confidence,
+      verified: row.s_verified,
+      isfdb_id: row.s_isfdb_id,
+      librarything_id: row.s_librarything_id,
+      openlibrary_key: row.s_openlibrary_key,
+    } as SeriesRecord,
+  };
+}

@@ -1,0 +1,16 @@
+nohup: ignoring input
+[NachoSeries] Database initialized at ./data/nachoseries.db
+
+╔════════════════════════════════════════════════════════════════╗
+║                     NACHOSERIES API                            ║
+║                  Running on port 5057                          ║
+╚════════════════════════════════════════════════════════════════╝
+
+Endpoints:
+  GET /api/health         - Health check
+  GET /api/stats          - Database statistics
+  GET /api/series         - List all series (paginated)
+  GET /api/series/search  - Search series by name
+  GET /api/series/byName  - Get series by exact name
+  GET /api/series/:id     - Get series by ID
+

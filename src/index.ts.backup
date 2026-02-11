@@ -3,7 +3,7 @@
  * Aggregates and reconciles book series data from multiple sources
  */
 
-import { initDatabase, getStats, closeDatabase, upsertSeries, upsertSeriesBook, findSeriesByName, getSeriesNeedingVerification, storeSourceData, getDb } from './database/db.js';
+import { initDatabase, getStats, closeDatabase, upsertSeries, upsertSeriesBook, findSeriesByName, getSeriesNeedingVerification, storeSourceData } from './database/db.js';
 import { fetchSeries as fetchLibraryThing } from './sources/librarything.js';
 import { fetchSeries as fetchOpenLibrary } from './sources/openLibrary.js';
 import { fetchSeries as fetchISFDB, browseSeriesByGenre, fetchSeriesById, genreKeywords, discoverSeriesFromAuthors, scanSeriesRange, fetchPopularAuthors, fetchAuthorSeries } from './sources/isfdb.js';
@@ -16,10 +16,10 @@ async function main() {
   const args = process.argv.slice(2);
   const command = args[0] || 'status';
   
-  console.log('╔══════════════════════════════════════════════════════════════════╗');
-  console.log('║                        NACHOSERIES                               ║');
-  console.log('║              Series Database Builder v0.1.0                      ║');
-  console.log('╚══════════════════════════════════════════════════════════════════╝');
+  console.log('╔════════════════════════════════════════════════════════════════╗');
+  console.log('║                        NACHOSERIES                             ║');
+  console.log('║              Series Database Builder v0.1.0                    ║');
+  console.log('╚════════════════════════════════════════════════════════════════╝');
   console.log('');
   
   // Initialize database
@@ -44,12 +44,7 @@ async function main() {
       
     case 'discover':
       const discoverLimit = parseInt(args.find(a => a.startsWith('--limit='))?.split('=')[1] || '100');
-      const discoverGenre = args.find(a => a.startsWith('--genre='))?.split('=')[1];
-      await runDiscover(args[1] || 'authors', args.includes('--save'), discoverLimit, discoverGenre);
-      break;
-
-    case 'tag':
-      await runTagGenres(args[1]);
+      await runDiscover(args[1] || 'authors', args.includes('--save'), discoverLimit);
       break;
 
     case 'save':
@@ -60,18 +55,16 @@ async function main() {
       console.log('Usage: nachoseries <command>');
       console.log('');
       console.log('Commands:');
-      console.log('  status            Show database statistics');
-      console.log('  test [series]     Test fetch a specific series');
-      console.log('  crawl [genre]     Crawl series for a genre (--save to persist)');
-      console.log('  save [series]     Fetch and save a specific series');
-      console.log('  verify            Verify existing series data');
-      console.log('  discover [mode]   Discover series (modes: authors, scan, seed)');
-      console.log('  tag [genre]       Tag untagged series with genres using keyword matching');
+      console.log('  status           Show database statistics');
+      console.log('  test [series]    Test fetch a specific series');
+      console.log('  crawl [genre]    Crawl series for a genre (--save to persist)');
+      console.log('  save [series]    Fetch and save a specific series');
+      console.log('  verify           Verify existing series data');
+      console.log('  discover [mode]  Discover series (modes: authors, scan, seed)');
       console.log('');
       console.log('Options:');
-      console.log('  --save            Save discovered series to database');
-      console.log('  --limit=N         Limit number of items to process');
-      console.log('  --genre=GENRE     Tag discovered series with this genre');
+      console.log('  --save           Save discovered series to database');
+      console.log('  --limit=N        Limit number of items to process');
       console.log('');
       console.log('Genres: ' + Object.keys(genreKeywords).join(', '));
       break;
@@ -95,12 +88,6 @@ async function showStatus() {
   for (const [genre, count] of Object.entries(stats.seriesByGenre)) {
     console.log(`  ${genre}: ${count}`);
   }
-  
-  // Show untagged count
-  const db = getDb();
-  const untaggedCount = (db.prepare('SELECT COUNT(*) as count FROM series WHERE genre IS NULL').get() as { count: number }).count;
-  console.log(`  (untagged): ${untaggedCount}`);
-  
   console.log('');
   console.log('🔌 Services Status');
   console.log('─'.repeat(50));
@@ -453,13 +440,10 @@ async function runVerify() {
 
 main().catch(console.error);
 
-async function runDiscover(mode: string, saveToDb = false, limit = 100, genre?: string) {
+async function runDiscover(mode: string, saveToDb = false, limit = 100) {
   console.log(`🔍 Discovery mode: ${mode}`);
   console.log(`📁 Save to database: ${saveToDb ? 'Yes' : 'No (dry run)'}`);
   console.log(`📊 Limit: ${limit} ${mode === 'authors' ? 'authors' : 'series IDs'}`);
-  if (genre) {
-    console.log(`🏷️  Genre tag: ${genre}`);
-  }
   console.log('─'.repeat(50));
   
   let discoveredSeries: Array<{ id: string; name: string; author?: string }> = [];
@@ -513,9 +497,6 @@ async function runDiscover(mode: string, saveToDb = false, limit = 100, genre?: 
     }
     console.log('');
     console.log('💡 Run with --save to fetch full details and persist to database');
-    if (!genre) {
-      console.log('💡 Add --genre=GENRE to tag all discovered series with a genre');
-    }
     return;
   }
   
@@ -567,11 +548,10 @@ async function runDiscover(mode: string, saveToDb = false, limit = 100, genre?: 
     const yearStart = years.length > 0 ? Math.min(...years) : undefined;
     const yearEnd = years.length > 0 ? Math.max(...years) : undefined;
     
-    // Save to database WITH GENRE if provided
+    // Save to database
     const seriesId = upsertSeries({
       name: series.name,
       author: series.author,
-      genre: genre,  // NOW PROPERLY SET!
       total_books: series.books.length,
       year_start: yearStart,
       year_end: yearEnd,
@@ -594,7 +574,7 @@ async function runDiscover(mode: string, saveToDb = false, limit = 100, genre?: 
     // Store raw source data
     storeSourceData(seriesId, 'isfdb', result.raw, series.books.length);
     
-    console.log(`${progress} ✅ ${series.name} - ${series.books.length} books${genre ? ` [${genre}]` : ''}`);
+    console.log(`${progress} ✅ ${series.name} - ${series.books.length} books`);
     saved++;
   }
   
@@ -602,139 +582,8 @@ async function runDiscover(mode: string, saveToDb = false, limit = 100, genre?: 
   console.log('─'.repeat(50));
   console.log('📊 Discovery Summary:');
   console.log(`  Mode: ${mode}`);
-  if (genre) {
-    console.log(`  Genre: ${genre}`);
-  }
   console.log(`  Discovered: ${discoveredSeries.length} series`);
   console.log(`  Saved: ${saved}`);
   console.log(`  Skipped: ${skipped}`);
   console.log(`  Errors: ${errors}`);
-}
-
-/**
- * Tag untagged series with genres based on keyword matching
- */
-async function runTagGenres(targetGenre?: string) {
-  console.log('🏷️  Tagging series with genres...');
-  console.log('─'.repeat(50));
-  
-  const db = getDb();
-  
-  // Genre keyword patterns for matching series names
-  const genrePatterns: Record<string, RegExp[]> = {
-    'litrpg': [
-      /\blitrpg\b/i,
-      /\bgamelit\b/i,
-      /\bdungeon\s*core\b/i,
-      /\bcultivation\b/i,
-      /\bprogression\s*fantasy\b/i,
-      /\bsystem\s*apocalypse\b/i,
-      /\bvrmmo\b/i,
-    ],
-    'fantasy': [
-      /\bfantasy\b/i,
-      /\bsword\s*(and|&)\s*sorcery\b/i,
-      /\bdragon\b/i,
-      /\bwizard\b/i,
-      /\bmagic\b/i,
-      /\belf\b|\belves\b|\bdwarves\b|\bdwarf\b/i,
-      /\bthrone\b|\bkingdom\b|\bempire\b|\brealm\b/i,
-      /\bfae\b|\bfaerie\b|\bfairy\b/i,
-    ],
-    'science-fiction': [
-      /\bscience\s*fiction\b/i,
-      /\bsci[\s-]?fi\b/i,
-      /\bspace\s*opera\b/i,
-      /\bcyberpunk\b/i,
-      /\bstarship\b/i,
-      /\bgalaxy\b|\bgalactic\b/i,
-      /\balien\b|\bextraterrestrial\b/i,
-      /\bplanet\b/i,
-      /\bstar\s*trek\b|\bstar\s*wars\b/i,
-    ],
-    'post-apocalyptic': [
-      /\bapocalyptic\b/i,
-      /\bpost[\s-]?apocaly/i,
-      /\bdystopian\b/i,
-      /\bsurvival\b/i,
-      /\bzombie\b/i,
-      /\bcollapse\b/i,
-      /\bwasteland\b/i,
-    ],
-    'horror': [
-      /\bhorror\b/i,
-      /\bdark\s*fantasy\b/i,
-      /\bsupernatural\b/i,
-      /\bvampire\b/i,
-      /\bwerewolf\b/i,
-      /\bhaunted\b/i,
-      /\bghost\b|\bghostly\b/i,
-      /\bmonster\b/i,
-    ],
-    'mystery': [
-      /\bmystery\b/i,
-      /\bdetective\b/i,
-      /\bcrime\b/i,
-      /\bwhodunit\b/i,
-      /\bmurder\b/i,
-      /\bsleuth\b/i,
-    ],
-    'thriller': [
-      /\bthriller\b/i,
-      /\bsuspense\b/i,
-      /\bspy\b/i,
-      /\bespionage\b/i,
-      /\bassassin\b/i,
-      /\bconspiracy\b/i,
-    ],
-    'romance': [
-      /\bromance\b/i,
-      /\blove\s*story\b/i,
-      /\bromantic\b/i,
-      /\bregency\b/i,
-    ],
-  };
-  
-  // Get all series without genres
-  const stmt = db.prepare('SELECT id, name, author FROM series WHERE genre IS NULL');
-  const untagged = stmt.all() as Array<{ id: string; name: string; author: string | null }>;
-  
-  console.log(`Found ${untagged.length} series without genre tags\n`);
-  
-  let tagged = 0;
-  const genresToProcess = targetGenre ? [targetGenre] : Object.keys(genrePatterns);
-  const genreCounts: Record<string, number> = {};
-  
-  for (const series of untagged) {
-    const searchText = series.name;
-    let wasTagged = false;
-    
-    for (const genreName of genresToProcess) {
-      if (wasTagged) break;
-      const patterns = genrePatterns[genreName];
-      if (!patterns) continue;
-      
-      for (const pattern of patterns) {
-        if (pattern.test(searchText)) {
-          // Update genre
-          db.prepare("UPDATE series SET genre = ?, updated_at = datetime('now') WHERE id = ?")
-            .run(genreName, series.id);
-          
-          console.log(`  🏷️  ${series.name} → ${genreName}`);
-          tagged++;
-          genreCounts[genreName] = (genreCounts[genreName] || 0) + 1;
-          wasTagged = true;
-          break;  // Only assign first matching genre
-        }
-      }
-    }
-  }
-  
-  console.log('');
-  console.log('─'.repeat(50));
-  console.log(`Tagged ${tagged} series with genres:`);
-  for (const [g, count] of Object.entries(genreCounts)) {
-    console.log(`  ${g}: ${count}`);
-  }
-  console.log(`\nRemaining untagged: ${untagged.length - tagged}`);
 }
