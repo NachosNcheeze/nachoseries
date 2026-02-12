@@ -8,6 +8,7 @@ import { fetchSeries as fetchLibraryThing } from './sources/librarything.js';
 import { fetchSeries as fetchOpenLibrary } from './sources/openLibrary.js';
 import { fetchSeries as fetchISFDB, browseSeriesByGenre, fetchSeriesById, genreKeywords, discoverSeriesFromAuthors, scanSeriesRange, fetchPopularAuthors, fetchAuthorSeries, mapTagsToGenre, detectGenre, guessGenreFromName } from './sources/isfdb.js';
 import { fetchSeries as fetchGoodreads, testGoodreads } from './sources/goodreads.js';
+import { importGenre as importGoodreadsGenre, importAllGenres as importAllGoodreadsGenres, GENRE_LISTS } from './sources/goodreadsList.js';
 import { lookupGenreForSeries } from './sources/genreLookup.js';
 import { shouldFilterSeries, detectLanguage, getNonEnglishSqlPatterns } from './utils/languageFilter.js';
 import { checkFlareSolverr } from './sources/flareSolverr.js';
@@ -87,6 +88,13 @@ async function main() {
       await runLanguageCleanup(dryRun);
       break;
 
+    case 'import-lists':
+      // Import series from Goodreads curated lists
+      // Genre is optional (first non-flag arg after command), --save to persist
+      const listGenre = args.slice(1).find(a => !a.startsWith('--'));
+      await runGoodreadsListImport(listGenre, args.includes('--save'));
+      break;
+
     case 'save':
       await saveSeriesFromTest(args[1]);
       break;
@@ -114,6 +122,7 @@ async function main() {
       console.log('  retag             Re-fetch ISFDB tags for untagged series');
       console.log('  autotag           Tag all untagged series from name analysis (fast)');
       console.log('  booktag           Tag series by looking up books in Open Library');
+      console.log('  import-lists      Import from Goodreads curated lists (--save to persist)');
       console.log('  cleanup           Remove non-English series (--confirm to execute)');
       console.log('  daily             Run automated daily job (discover + tag)');
       console.log('');
@@ -1183,3 +1192,97 @@ async function runLanguageCleanup(dryRun = true) {
   const stats = getStats();
   console.log(`\nDatabase now has ${stats.totalSeries} series`);
 }
+
+/**
+ * Import series from Goodreads curated lists
+ */
+async function runGoodreadsListImport(genre?: string, save = false) {
+  console.log('📚 Goodreads List Import');
+  console.log('─'.repeat(50));
+  
+  if (genre && !GENRE_LISTS[genre]) {
+    console.log(`Unknown genre: ${genre}`);
+    console.log(`Available genres: ${Object.keys(GENRE_LISTS).join(', ')}`);
+    return;
+  }
+  
+  if (!save) {
+    console.log('⚠️  Dry run mode - use --save to persist to database');
+  }
+  
+  let allSeries: Map<string, import('./types.js').SourceSeries[]>;
+  
+  if (genre) {
+    // Import single genre
+    const series = await importGoodreadsGenre(genre);
+    allSeries = new Map([[genre, series]]);
+  } else {
+    // Import all genres
+    allSeries = await importAllGoodreadsGenres();
+  }
+  
+  // Summary
+  console.log('\n' + '═'.repeat(50));
+  console.log('📊 Import Summary');
+  console.log('═'.repeat(50));
+  
+  let totalSeries = 0;
+  let savedSeries = 0;
+  
+  for (const [g, series] of allSeries) {
+    console.log(`\n${g}: ${series.length} series`);
+    totalSeries += series.length;
+    
+    if (save && series.length > 0) {
+      const db = getDb();
+      
+      for (const s of series) {
+        // Check if series already exists
+        const existing = findSeriesByName(s.name);
+        if (existing) {
+          console.log(`  ⏭️  Skip (exists): ${s.name}`);
+          continue;
+        }
+        
+        // Filter non-English
+        if (shouldFilterSeries(s.name)) {
+          console.log(`  ⏭️  Skip (non-English): ${s.name}`);
+          continue;
+        }
+        
+        // Insert series
+        const seriesId = upsertSeries({
+          name: s.name,
+          author: s.author || null,
+          genre: g,
+          confidence: 0.8, // Curated lists are fairly reliable
+        });
+        
+        // Insert books
+        for (const book of s.books) {
+          upsertSeriesBook({
+            series_id: seriesId,
+            title: book.title,
+            author: book.author || null,
+            position: book.position || null,
+            year_published: book.yearPublished || null,
+          });
+        }
+        
+        savedSeries++;
+        console.log(`  ✅ Saved: ${s.name} (${s.books.length} books)`);
+      }
+    }
+  }
+  
+  console.log('\n' + '═'.repeat(50));
+  console.log(`Total found: ${totalSeries} series`);
+  if (save) {
+    console.log(`Saved to DB: ${savedSeries} new series`);
+    const stats = getStats();
+    console.log(`Database now has ${stats.totalSeries} series`);
+  }
+}
+
+// Call main
+main().catch(console.error);
