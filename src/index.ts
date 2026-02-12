@@ -3,7 +3,7 @@
  * Aggregates and reconciles book series data from multiple sources
  */
 
-import { initDatabase, getStats, closeDatabase, upsertSeries, upsertSeriesBook, findSeriesByName, getSeriesNeedingVerification, storeSourceData, getDb } from './database/db.js';
+import { initDatabase, getStats, closeDatabase, upsertSeries, upsertSeriesBook, findSeriesByName, getSeriesNeedingVerification, storeSourceData, getDb, updateSeriesGenre } from './database/db.js';
 import { fetchSeries as fetchLibraryThing } from './sources/librarything.js';
 import { fetchSeries as fetchOpenLibrary } from './sources/openLibrary.js';
 import { fetchSeries as fetchISFDB, browseSeriesByGenre, fetchSeriesById, genreKeywords, discoverSeriesFromAuthors, scanSeriesRange, fetchPopularAuthors, fetchAuthorSeries, mapTagsToGenre, detectGenre, guessGenreFromName } from './sources/isfdb.js';
@@ -90,9 +90,11 @@ async function main() {
 
     case 'import-lists':
       // Import series from Goodreads curated lists
-      // Genre is optional (first non-flag arg after command), --save to persist
+      // Genre is optional (first non-flag arg after command)
+      // --save to persist new series, --update-genres to update existing series genres
       const listGenre = args.slice(1).find(a => !a.startsWith('--'));
-      await runGoodreadsListImport(listGenre, args.includes('--save'));
+      const updateGenres = args.includes('--update-genres');
+      await runGoodreadsListImport(listGenre, args.includes('--save'), updateGenres);
       break;
 
     case 'save':
@@ -1196,7 +1198,7 @@ async function runLanguageCleanup(dryRun = true) {
 /**
  * Import series from Goodreads curated lists
  */
-async function runGoodreadsListImport(genre?: string, save = false) {
+async function runGoodreadsListImport(genre?: string, save = false, updateExistingGenres = false) {
   console.log('📚 Goodreads List Import');
   console.log('─'.repeat(50));
   
@@ -1206,8 +1208,8 @@ async function runGoodreadsListImport(genre?: string, save = false) {
     return;
   }
   
-  if (!save) {
-    console.log('⚠️  Dry run mode - use --save to persist to database');
+  if (!save && !updateExistingGenres) {
+    console.log('⚠️  Dry run mode - use --save to persist new series, --update-genres to update existing');
   }
   
   let allSeries: Map<string, import('./types.js').SourceSeries[]>;
@@ -1228,27 +1230,49 @@ async function runGoodreadsListImport(genre?: string, save = false) {
   
   let totalSeries = 0;
   let savedSeries = 0;
+  let updatedGenres = 0;
+  
+  // Genres that should be updated (generic/unset genres)
+  const genericGenres = new Set(['', null, undefined, 'fiction', 'unknown']);
   
   for (const [g, series] of allSeries) {
     console.log(`\n${g}: ${series.length} series`);
     totalSeries += series.length;
     
-    if (save && series.length > 0) {
+    if ((save || updateExistingGenres) && series.length > 0) {
       const db = getDb();
       
       for (const s of series) {
-        // Check if series already exists
-        const existing = findSeriesByName(s.name);
-        if (existing) {
-          console.log(`  ⏭️  Skip (exists): ${s.name}`);
-          continue;
-        }
-        
         // Filter non-English
         if (shouldFilterSeries(s.name)) {
           console.log(`  ⏭️  Skip (non-English): ${s.name}`);
           continue;
         }
+        
+        // Check if series already exists
+        const existing = findSeriesByName(s.name);
+        if (existing) {
+          // Only update genre if:
+          // 1. --update-genres flag is set
+          // 2. Existing genre is generic (null, empty, "fiction", "unknown")
+          // 3. New genre is different and more specific
+          const existingGenre = existing.genre || '';
+          const shouldUpdate = updateExistingGenres && 
+            genericGenres.has(existingGenre) && 
+            !genericGenres.has(g);
+          
+          if (shouldUpdate) {
+            const oldGenre = existingGenre || '(none)';
+            updateSeriesGenre(existing.id, g);
+            updatedGenres++;
+            console.log(`  🔄 Updated genre: ${s.name} (${oldGenre} → ${g})`);
+          } else {
+            console.log(`  ⏭️  Skip (exists): ${s.name}`);
+          }
+          continue;
+        }
+        
+        if (!save) continue; // Only create new if --save flag
         
         // Insert series
         const seriesId = upsertSeries({
@@ -1277,8 +1301,9 @@ async function runGoodreadsListImport(genre?: string, save = false) {
   
   console.log('\n' + '═'.repeat(50));
   console.log(`Total found: ${totalSeries} series`);
-  if (save) {
-    console.log(`Saved to DB: ${savedSeries} new series`);
+  if (save || updateExistingGenres) {
+    if (save) console.log(`Saved to DB: ${savedSeries} new series`);
+    if (updateExistingGenres) console.log(`Updated genres: ${updatedGenres} existing series`);
     const stats = getStats();
     console.log(`Database now has ${stats.totalSeries} series`);
   }

@@ -164,6 +164,19 @@ export function upsertSeries(series: Partial<SeriesRecord> & { name: string }): 
 }
 
 /**
+ * Update only the genre of an existing series
+ * Used when we have high-confidence genre data from curated lists
+ */
+export function updateSeriesGenre(seriesId: string, genre: string): void {
+  const db = getDb();
+  const stmt = db.prepare(`
+    UPDATE series SET genre = ?, updated_at = datetime('now')
+    WHERE id = ?
+  `);
+  stmt.run(genre, seriesId);
+}
+
+/**
  * Find series by name (fuzzy match)
  */
 export function findSeriesByName(name: string): SeriesRecord | null {
