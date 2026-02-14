@@ -37,6 +37,10 @@ ENV NACHOSERIES_PORT=5057
 # Expose API port
 EXPOSE 5057
 
+# Health check — Docker will mark container unhealthy if this fails
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD node -e "fetch('http://localhost:5057/api/health').then(r=>{if(!r.ok)process.exit(1);return r.json()}).then(d=>{if(d.status!=='ok')process.exit(1)}).catch(()=>process.exit(1))"
+
 # Volume for persistent data (database)
 VOLUME ["/app/data"]
 

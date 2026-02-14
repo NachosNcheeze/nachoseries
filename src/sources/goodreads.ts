@@ -7,9 +7,11 @@
  */
 
 import type { SourceBook, SourceSeries } from '../types.js';
+import { fetchWithTimeout, withRetry } from '../utils/resilience.js';
 
 const BASE_URL = 'https://www.goodreads.com';
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36';
+const FETCH_TIMEOUT = 20000; // 20 seconds
 
 // Rate limiter
 let lastRequest = 0;
@@ -94,9 +96,13 @@ export async function searchBookSeries(title: string, author?: string): Promise<
   
   console.log(`[Goodreads] Searching for: ${query}`);
   
-  const searchResponse = await fetch(searchUrl, {
-    headers: { 'User-Agent': USER_AGENT },
-  });
+  const searchResponse = await withRetry(
+    () => fetchWithTimeout(searchUrl, {
+      headers: { 'User-Agent': USER_AGENT },
+      timeout: FETCH_TIMEOUT,
+    }),
+    { maxRetries: 2, baseDelay: 3000 }
+  );
   
   if (!searchResponse.ok) {
     console.error(`[Goodreads] Search failed: ${searchResponse.status}`);
@@ -118,9 +124,13 @@ export async function searchBookSeries(title: string, author?: string): Promise<
   await rateLimit();
   
   const bookUrl = `${BASE_URL}/book/show/${firstBookId}`;
-  const bookResponse = await fetch(bookUrl, {
-    headers: { 'User-Agent': USER_AGENT },
-  });
+  const bookResponse = await withRetry(
+    () => fetchWithTimeout(bookUrl, {
+      headers: { 'User-Agent': USER_AGENT },
+      timeout: FETCH_TIMEOUT,
+    }),
+    { maxRetries: 2, baseDelay: 3000 }
+  );
   
   if (!bookResponse.ok) {
     console.error(`[Goodreads] Book fetch failed: ${bookResponse.status}`);
@@ -201,9 +211,13 @@ export async function fetchSeriesBooks(seriesUrl: string): Promise<SourceBook[]>
   
   console.log(`[Goodreads] Fetching series from: ${seriesUrl}`);
   
-  const response = await fetch(seriesUrl, {
-    headers: { 'User-Agent': USER_AGENT },
-  });
+  const response = await withRetry(
+    () => fetchWithTimeout(seriesUrl, {
+      headers: { 'User-Agent': USER_AGENT },
+      timeout: FETCH_TIMEOUT,
+    }),
+    { maxRetries: 2, baseDelay: 3000 }
+  );
   
   if (!response.ok) {
     console.error(`[Goodreads] Series fetch failed: ${response.status}`);

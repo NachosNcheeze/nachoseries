@@ -28,6 +28,8 @@ export interface SourceSeries {
   books: SourceBook[];
   sourceId?: string;        // ID in the source system
   tags?: string[];          // Tags/categories from the source
+  subSeries?: Array<{ id: string; name: string }>;  // Child series (e.g., from ISFDB)
+  parentSeriesId?: string;  // Parent series ID if this is a sub-series
 }
 
 /**

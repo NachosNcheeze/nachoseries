@@ -193,8 +193,19 @@ async function fetchSeriesPage(seriesId: string): Promise<SourceSeries | null> {
   // Extract author - appears in book entries as "by Author"
   let author: string | undefined;
   
-  // Parse books from the series listing
+  // Parse books and sub-series from the series listing
   const books: SourceBook[] = [];
+  const subSeries: Array<{ id: string; name: string }> = [];
+
+  // Check if this series is a sub-series of another (metadata header)
+  let parentSeriesId: string | undefined;
+  $('li:contains("Sub-series of:")').find('a[href*="pe.cgi"]').each((_, el) => {
+    const href = $(el).attr('href');
+    const match = href?.match(/pe\.cgi\?(\d+)/);
+    if (match && !parentSeriesId) {
+      parentSeriesId = match[1];
+    }
+  });
 
   // Get the content area - books are in nested lists within ContentBox divs
   const contentBoxes = $('#content .ContentBox');
@@ -208,14 +219,27 @@ async function fetchSeriesPage(seriesId: string): Promise<SourceSeries | null> {
       
       // Check if this li has a title link (class="italic" and href contains title.cgi)
       const titleLink = $li.find('> a.italic[href*="title.cgi"], > a[class*="italic"][href*="title.cgi"]');
-      if (titleLink.length === 0) return;
+      if (titleLink.length === 0) {
+        // No title link — check if this is a sub-series link (pe.cgi)
+        const seriesLink = $li.find('> a[href*="pe.cgi"]');
+        if (seriesLink.length > 0) {
+          const href = seriesLink.attr('href');
+          const name = seriesLink.text().trim();
+          const match = href?.match(/pe\.cgi\?(\d+)/);
+          // Exclude self and parent from sub-series list
+          if (match && name && match[1] !== seriesId && match[1] !== parentSeriesId && !subSeries.find(s => s.id === match[1])) {
+            subSeries.push({ id: match[1], name });
+          }
+        }
+        return;
+      }
       
       // Get the text content before the link (should be the position number)
       const liText = $li.clone().children().remove().end().text().trim();
       const positionMatch = liText.match(/^(\d+(?:\.\d+)?)/);
       const position = positionMatch ? parseFloat(positionMatch[1]) : undefined;
       
-      // Skip if no position (likely a subseries header)
+      // Skip if no position (likely a subseries header with a title link)
       if (position === undefined) return;
       
       const title = titleLink.text().trim();
@@ -279,6 +303,12 @@ async function fetchSeriesPage(seriesId: string): Promise<SourceSeries | null> {
   });
   
   console.log(`[ISFDB] Parsed ${uniqueBooks.length} books from HTML`);
+  if (subSeries.length > 0) {
+    console.log(`[ISFDB] Found ${subSeries.length} sub-series: ${subSeries.map(s => s.name).join(', ')}`);
+  }
+  if (parentSeriesId) {
+    console.log(`[ISFDB] This is a sub-series of ISFDB ID: ${parentSeriesId}`);
+  }
   
   return {
     name: seriesName,
@@ -286,6 +316,8 @@ async function fetchSeriesPage(seriesId: string): Promise<SourceSeries | null> {
     books: uniqueBooks,
     sourceId: seriesId,
     tags: tags.length > 0 ? tags : undefined,
+    subSeries: subSeries.length > 0 ? subSeries : undefined,
+    parentSeriesId,
   };
 }
 

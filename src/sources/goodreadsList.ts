@@ -126,7 +126,7 @@ export const GENRE_LISTS: Record<string, string[]> = {
     '/list/show/12325.S_L_Top_100_Science_Fiction_Fantasy_Titles',
     '/list/show/225.Best_Paranormal_Fantasy_Romances',
   ],
-  scifi: [
+  'science-fiction': [
     '/list/show/3.Best_Science_Fiction_Fantasy_Books',
     '/list/show/19341.Best_Science_Fiction',
     '/list/show/1010.Best_Space_Opera_Science_Fiction',

@@ -12,16 +12,20 @@ import {
   findSeriesByName, 
   searchSeries as dbSearchSeries,
   getSeriesWithBooks,
+  getSeriesWithChildren,
+  getChildSeries,
   getAllSeries,
   getBooksByGenre,
   countBooksByGenre,
   findSeriesForBook,
   findSeriesByBookTitle,
-  saveSourceSeries
+  saveSourceSeries,
+  checkDatabaseHealth
 } from './database/db.js';
 import { fetchSeries as fetchGoodreadsSeries } from './sources/goodreads.js';
 
 const PORT = parseInt(process.env.NACHOSERIES_PORT || '5057');
+const startedAt = new Date().toISOString();
 
 // CORS headers for cross-origin requests
 const CORS_HEADERS = {
@@ -51,11 +55,25 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
 
   const url = new URL(req.url || '/', `http://localhost:${PORT}`);
   const path = url.pathname;
+  const requestStart = Date.now();
+
+  // Log request (skip health checks to reduce noise)
+  const isHealthCheck = path === '/health' || path === '/api/health';
 
   try {
-    // Health check
+    // Health check — verifies DB connectivity
     if (path === '/health' || path === '/api/health') {
-      sendJSON(res, { status: 'ok', service: 'nachoseries' });
+      const dbHealth = checkDatabaseHealth();
+      const uptimeMs = Date.now() - new Date(startedAt).getTime();
+      const status = dbHealth.ok ? 'ok' : 'degraded';
+      const httpStatus = dbHealth.ok ? 200 : 503;
+      sendJSON(res, {
+        status,
+        service: 'nachoseries',
+        uptime: Math.floor(uptimeMs / 1000),
+        startedAt,
+        database: dbHealth.details,
+      }, httpStatus);
       return;
     }
 
@@ -96,8 +114,8 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
         return;
       }
       
-      // Get full series with books
-      const fullSeries = getSeriesWithBooks(series.id);
+      // Get full series with books and sub-series hierarchy
+      const fullSeries = getSeriesWithChildren(series.id);
       sendJSON(res, { found: true, series: fullSeries });
       return;
     }
@@ -191,7 +209,7 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
         return;
       }
       
-      const series = getSeriesWithBooks(parseInt(id));
+      const series = getSeriesWithChildren(parseInt(id));
       if (!series) {
         sendError(res, 'Series not found', 404);
         return;
@@ -251,6 +269,11 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
   } catch (error) {
     console.error('[API] Error:', error);
     sendError(res, 'Internal server error', 500);
+  } finally {
+    if (!isHealthCheck) {
+      const elapsed = Date.now() - requestStart;
+      console.log(`[API] ${req.method} ${path} — ${res.statusCode} (${elapsed}ms)`);
+    }
   }
 }
 
@@ -274,16 +297,37 @@ export function startServer(): void {
     console.log('  GET /api/series/search  - Search series by name');
     console.log('  GET /api/series/byName  - Get series by exact name');
     console.log('  GET /api/series/for-book - Find series for a book title');
-    console.log('  GET /api/series/:id     - Get series by ID');
+    console.log('  GET /api/series/:id     - Get series by ID (includes children & parent)');
     console.log('');
   });
 
-  // Graceful shutdown
-  process.on('SIGINT', () => {
-    console.log('\nShutting down...');
-    server.close();
-    closeDatabase();
-    process.exit(0);
+  // Graceful shutdown (SIGINT for terminal, SIGTERM for Docker)
+  const shutdown = (signal: string) => {
+    console.log(`\n[API] Shutting down (${signal})...`);
+    server.close(() => {
+      closeDatabase();
+      console.log('[API] Shutdown complete');
+      process.exit(0);
+    });
+    // Force exit after 10s if connections are hanging
+    setTimeout(() => {
+      console.error('[API] Forced shutdown after timeout');
+      process.exit(1);
+    }, 10000);
+  };
+
+  process.on('SIGINT', () => shutdown('SIGINT'));
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+
+  // Crash handlers
+  process.on('uncaughtException', (error) => {
+    console.error('[API] UNCAUGHT EXCEPTION:', error);
+    shutdown('uncaughtException');
+  });
+  
+  process.on('unhandledRejection', (reason) => {
+    console.error('[API] UNHANDLED REJECTION:', reason);
+    // Don't exit on unhandled rejections — log and continue
   });
 }
 

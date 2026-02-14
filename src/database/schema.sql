@@ -24,9 +24,14 @@ CREATE TABLE IF NOT EXISTS series (
   openlibrary_key TEXT,
   isfdb_id        TEXT,
   
+  -- Hierarchy (self-referencing parent)
+  parent_series_id TEXT,              -- FK to series(id) for sub-series
+
   -- Timestamps
   created_at      TEXT DEFAULT (datetime('now')),
-  updated_at      TEXT DEFAULT (datetime('now'))
+  updated_at      TEXT DEFAULT (datetime('now')),
+  
+  FOREIGN KEY (parent_series_id) REFERENCES series(id) ON DELETE SET NULL
 );
 
 -- Books in series
@@ -111,3 +116,4 @@ CREATE INDEX IF NOT EXISTS idx_series_book_series ON series_book(series_id);
 CREATE INDEX IF NOT EXISTS idx_series_book_position ON series_book(series_id, position);
 CREATE INDEX IF NOT EXISTS idx_source_data_series ON source_data(series_id);
 CREATE INDEX IF NOT EXISTS idx_discrepancy_unresolved ON discrepancy(resolved) WHERE resolved = 0;
+CREATE INDEX IF NOT EXISTS idx_series_parent ON series(parent_series_id);

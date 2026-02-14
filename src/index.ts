@@ -3,18 +3,22 @@
  * Aggregates and reconciles book series data from multiple sources
  */
 
-import { initDatabase, getStats, closeDatabase, upsertSeries, upsertSeriesBook, findSeriesByName, getSeriesNeedingVerification, storeSourceData, getDb, updateSeriesGenre } from './database/db.js';
+import { initDatabase, getStats, closeDatabase, upsertSeries, upsertSeriesBook, findSeriesByName, getSeriesNeedingVerification, storeSourceData, getDb, updateSeriesGenre, saveSourceSeries, findSeriesByIsfdbId, setParentSeries, getChildSeries, getParentSeriesList, type SeriesRecord } from './database/db.js';
 import { fetchSeries as fetchLibraryThing } from './sources/librarything.js';
 import { fetchSeries as fetchOpenLibrary } from './sources/openLibrary.js';
 import { fetchSeries as fetchISFDB, browseSeriesByGenre, fetchSeriesById, genreKeywords, discoverSeriesFromAuthors, scanSeriesRange, fetchPopularAuthors, fetchAuthorSeries, mapTagsToGenre, detectGenre, guessGenreFromName } from './sources/isfdb.js';
 import { fetchSeries as fetchGoodreads, testGoodreads } from './sources/goodreads.js';
 import { importGenre as importGoodreadsGenre, importAllGenres as importAllGoodreadsGenres, GENRE_LISTS } from './sources/goodreadsList.js';
+import { discoverSeriesFromShelves, GENRE_SHELF_MAP } from './sources/goodreadsShelves.js';
+import { searchBook, getSeriesDescription, batchEnrich } from './sources/googleBooks.js';
 import { lookupGenreForSeries } from './sources/genreLookup.js';
 import { shouldFilterSeries, detectLanguage, getNonEnglishSqlPatterns } from './utils/languageFilter.js';
 import { checkFlareSolverr } from './sources/flareSolverr.js';
 import { compareSources, needsTalpaVerification } from './reconciler/matcher.js';
 import { config } from './config.js';
 import { knownSeries } from './data/knownSeries.js';
+import { readFileSync, existsSync, readdirSync } from 'fs';
+import { join } from 'path';
 
 async function main() {
   const args = process.argv.slice(2);
@@ -97,6 +101,78 @@ async function main() {
       await runGoodreadsListImport(listGenre, args.includes('--save'), updateGenres);
       break;
 
+    case 'import-seeds': {
+      // Import series from seed text files via Goodreads lookup
+      // Usage: import-seeds <genre> [--save] [--limit=N]
+      const seedGenre = args.slice(1).find(a => !a.startsWith('--'));
+      const seedLimit = parseInt(args.find(a => a.startsWith('--limit='))?.split('=')[1] || '0');
+      if (!seedGenre) {
+        console.log('Usage: import-seeds <genre> [--save] [--limit=N]');
+        console.log('Available seed files: litrpg, post-apocalyptic, fantasy-supplemental, science-fiction-supplemental');
+        break;
+      }
+      await runSeedImport(seedGenre, args.includes('--save'), seedLimit);
+      break;
+    }
+
+    case 'import-shelves': {
+      // Import series from Goodreads genre shelves (community-tagged)
+      // Usage: import-shelves <genre> [--save] [--pages=N]
+      const shelfGenre = args.slice(1).find(a => !a.startsWith('--'));
+      const shelfPages = parseInt(args.find(a => a.startsWith('--pages='))?.split('=')[1] || '5');
+      if (!shelfGenre) {
+        console.log('Usage: import-shelves <genre> [--save] [--pages=N]');
+        console.log(`Available genres: ${Object.keys(GENRE_SHELF_MAP).join(', ')}`);
+        break;
+      }
+      await runShelfImport(shelfGenre, args.includes('--save'), shelfPages);
+      break;
+    }
+
+    case 'enrich': {
+      // Enrich series with descriptions and ISBNs from Google Books
+      // Usage: enrich [--descriptions] [--isbns] [--limit=N] [--genre=GENRE]
+      const enrichLimit = parseInt(args.find(a => a.startsWith('--limit='))?.split('=')[1] || '100');
+      const enrichGenre = args.find(a => a.startsWith('--genre='))?.split('=')[1];
+      const enrichDescriptions = args.includes('--descriptions') || (!args.includes('--isbns'));
+      const enrichIsbns = args.includes('--isbns');
+      await runGoogleBooksEnrich(enrichLimit, enrichGenre, enrichDescriptions, enrichIsbns);
+      break;
+    }
+
+    case 'discover-all': {
+      // Automated full discovery: seeds → shelves → enrichment
+      // Runs through ALL sources until nothing new is found
+      // Usage: discover-all [--pages=N] [--skip-seeds] [--skip-shelves] [--skip-enrich]
+      const daPages = parseInt(args.find(a => a.startsWith('--pages='))?.split('=')[1] || '3');
+      await runDiscoverAll({
+        shelfPages: daPages,
+        skipSeeds: args.includes('--skip-seeds'),
+        skipShelves: args.includes('--skip-shelves'),
+        skipEnrich: args.includes('--skip-enrich'),
+      });
+      break;
+    }
+
+
+    case 'backfill': {
+      // Backfill books for series that have 0 book records
+      // Usage: backfill [--save] [--limit=N] [--genre=GENRE]
+      const bfLimit = parseInt(args.find(a => a.startsWith('--limit='))?.split('=')[1] || '0');
+      const bfGenre = args.find(a => a.startsWith('--genre='))?.split('=')[1];
+      await runBackfillBooks(args.includes('--save'), bfLimit, bfGenre);
+      break;
+    }
+
+    case 'link-subseries': {
+      // Link sub-series to their parent series by re-parsing ISFDB pages
+      // Usage: link-subseries [--limit=N] [--dry-run]
+      const lsLimit = parseInt(args.find(a => a.startsWith('--limit='))?.split('=')[1] || '0');
+      const lsDryRun = args.includes('--dry-run');
+      await runLinkSubSeries(lsLimit, lsDryRun);
+      break;
+    }
+
     case 'save':
       await saveSeriesFromTest(args[1]);
       break;
@@ -125,14 +201,26 @@ async function main() {
       console.log('  autotag           Tag all untagged series from name analysis (fast)');
       console.log('  booktag           Tag series by looking up books in Open Library');
       console.log('  import-lists      Import from Goodreads curated lists (--save to persist)');
+      console.log('  import-seeds      Import from seed text files via Goodreads (--save)');
+      console.log('  import-shelves    Import from Goodreads genre shelves (--save)');
+      console.log('  enrich            Enrich series with Google Books data (descriptions, ISBNs)');
+      console.log('  discover-all      Automated full scan: seeds → shelves → enrichment');
       console.log('  cleanup           Remove non-English series (--confirm to execute)');
+      console.log('  backfill          Backfill books for series with 0 book records');
+      console.log('  link-subseries    Link sub-series to parents by re-parsing ISFDB pages');
       console.log('  daily             Run automated daily job (discover + tag)');
       console.log('');
       console.log('Options:');
       console.log('  --save            Save discovered series to database');
       console.log('  --limit=N         Limit number of items to process');
       console.log('  --genre=GENRE     Tag discovered series with this genre');
+      console.log('  --pages=N         Max pages per shelf to scrape (import-shelves)');
+      console.log('  --descriptions    Enrich with descriptions (enrich command)');
+      console.log('  --isbns           Enrich with ISBNs (enrich command)');
       console.log('  --confirm         Execute cleanup (otherwise dry-run)');
+      console.log('  --skip-seeds      Skip seed file imports (discover-all)');
+      console.log('  --skip-shelves    Skip shelf scraping (discover-all)');
+      console.log('  --skip-enrich     Skip Google Books enrichment (discover-all)');
       console.log('');
       console.log('Genres: ' + Object.keys(genreKeywords).join(', '));
       break;
@@ -511,8 +599,6 @@ async function runVerify() {
   console.log('─'.repeat(50));
   console.log('💡 Full verification with cross-source reconciliation coming soon!');
 }
-
-main().catch(console.error);
 
 async function runDiscover(mode: string, saveToDb = false, limit = 100, genre?: string) {
   console.log(`🔍 Discovery mode: ${mode}`);
@@ -1307,6 +1393,1176 @@ async function runGoodreadsListImport(genre?: string, save = false, updateExisti
     const stats = getStats();
     console.log(`Database now has ${stats.totalSeries} series`);
   }
+}
+
+// =============================================================================
+// Seed Import (Combo 1, Layer 1)
+// =============================================================================
+
+/**
+ * Import series from seed text files via Goodreads on-demand lookup.
+ * Seed files live in data/seeds/<genre>.txt with one series name per line.
+ * For each name: check local DB → if not found, Goodreads lookup → cache in DB.
+ */
+async function runSeedImport(genre: string, save = false, limit = 0) {
+  console.log('🌱 Seed Import via Goodreads Lookup');
+  console.log('─'.repeat(50));
+  
+  // Find the seed file
+  const seedDir = join(process.cwd(), 'data', 'seeds');
+  const seedFile = join(seedDir, `${genre}.txt`);
+  
+  if (!existsSync(seedFile)) {
+    console.log(`❌ Seed file not found: ${seedFile}`);
+    // List available seed files
+    if (existsSync(seedDir)) {
+      const files = readdirSync(seedDir).filter(f => f.endsWith('.txt'));
+      console.log(`Available seed files: ${files.map(f => f.replace('.txt', '')).join(', ')}`);
+    }
+    return;
+  }
+  
+  // Parse the seed file
+  const content = readFileSync(seedFile, 'utf-8');
+  const seriesNames = content
+    .split('\n')
+    .map(line => line.trim())
+    .filter(line => line.length > 0 && !line.startsWith('#'));
+  
+  // Deduplicate (case-insensitive)
+  const seen = new Set<string>();
+  const uniqueNames = seriesNames.filter(name => {
+    const key = name.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  
+  const toProcess = limit > 0 ? uniqueNames.slice(0, limit) : uniqueNames;
+  
+  console.log(`📄 Seed file: ${seedFile}`);
+  console.log(`📊 Series names: ${uniqueNames.length} unique (${seriesNames.length} total lines)`);
+  console.log(`🔄 Processing: ${toProcess.length}${limit > 0 ? ` (limited to ${limit})` : ''}`);
+  console.log(`📁 Save to database: ${save ? 'Yes' : 'No (dry run)'}`);
+  console.log(`🏷️  Genre: ${genre}`);
+  console.log('─'.repeat(50));
+  
+  const db = getDb();
+  let alreadyExists = 0;
+  let fetched = 0;
+  let saved = 0;
+  let notFound = 0;
+  let filtered = 0;
+  let errors = 0;
+  
+  // Determine the canonical genre name for the seed file
+  // Map seed file names to actual genre labels
+  const genreMap: Record<string, string> = {
+    'litrpg': 'litrpg',
+    'post-apocalyptic': 'post-apocalyptic',
+    'fantasy-supplemental': 'fantasy',
+    'science-fiction-supplemental': 'science-fiction',
+    'fantasy': 'fantasy',
+    'science-fiction': 'science-fiction',
+    'horror': 'horror',
+    'romance': 'romance',
+    'mystery': 'mystery',
+    'thriller': 'thriller',
+  };
+  const canonicalGenre = genreMap[genre] || genre;
+  
+  for (let i = 0; i < toProcess.length; i++) {
+    const seriesName = toProcess[i];
+    const progress = `[${i + 1}/${toProcess.length}]`;
+    
+    // Language filter
+    if (shouldFilterSeries(seriesName)) {
+      console.log(`${progress} 🌍 ${seriesName} (non-English, skipped)`);
+      filtered++;
+      continue;
+    }
+    
+    // Check if already in database
+    const existing = findSeriesByName(seriesName);
+    if (existing) {
+      // If exists but has no genre (or generic genre), update it
+      if (save && (!existing.genre || existing.genre === 'fiction')) {
+        updateSeriesGenre(existing.id, canonicalGenre);
+        console.log(`${progress} 🔄 ${seriesName} (exists, genre updated → ${canonicalGenre})`);
+      } else {
+        console.log(`${progress} ⏭️  ${seriesName} (already exists${existing.genre ? ` [${existing.genre}]` : ''})`);
+      }
+      alreadyExists++;
+      continue;
+    }
+    
+    // Not in DB — fetch from Goodreads
+    console.log(`${progress} 📥 Fetching: ${seriesName}...`);
+    
+    try {
+      const series = await fetchGoodreads(seriesName);
+      
+      if (!series || series.books.length === 0) {
+        console.log(`${progress} ⚠️  ${seriesName} (not found on Goodreads)`);
+        notFound++;
+        continue;
+      }
+      
+      fetched++;
+      
+      if (save) {
+        // Save to database with genre
+        const seriesId = saveSourceSeries(series, series.sourceId);
+        
+        // Set the genre
+        updateSeriesGenre(seriesId, canonicalGenre);
+        
+        console.log(`${progress} ✅ ${series.name} - ${series.books.length} books by ${series.author || 'Unknown'} [${canonicalGenre}]`);
+        saved++;
+      } else {
+        console.log(`${progress} 📋 ${series.name} - ${series.books.length} books by ${series.author || 'Unknown'} (dry run)`);
+      }
+    } catch (error) {
+      console.log(`${progress} ❌ ${seriesName}: ${error}`);
+      errors++;
+    }
+  }
+  
+  console.log('');
+  console.log('─'.repeat(50));
+  console.log('📊 Seed Import Summary:');
+  console.log(`  Genre: ${canonicalGenre}`);
+  console.log(`  Processed: ${toProcess.length}`);
+  console.log(`  Already in DB: ${alreadyExists}`);
+  console.log(`  Fetched from Goodreads: ${fetched}`);
+  console.log(`  ${save ? 'Saved' : 'Would save'}: ${saved}`);
+  console.log(`  Not found: ${notFound}`);
+  console.log(`  Filtered (non-English): ${filtered}`);
+  console.log(`  Errors: ${errors}`);
+  
+  if (!save) {
+    console.log('\n💡 Run with --save to persist to database');
+  } else {
+    const stats = getStats();
+    console.log(`\n📈 Database now has ${stats.totalSeries} series, ${stats.totalBooks} books`);
+  }
+}
+
+// =============================================================================
+// Goodreads Shelf Import (Combo 1, Layer 2)
+// =============================================================================
+
+/**
+ * Import series by scraping Goodreads genre shelves.
+ * Discovers series names from community-tagged shelves, then
+ * fetches full series data via Goodreads on-demand lookup.
+ */
+async function runShelfImport(genre: string, save = false, maxPages = 5) {
+  console.log('📚 Goodreads Shelf Import');
+  console.log('─'.repeat(50));
+  
+  if (!GENRE_SHELF_MAP[genre]) {
+    console.log(`❌ Unknown genre: ${genre}`);
+    console.log(`Available genres: ${Object.keys(GENRE_SHELF_MAP).join(', ')}`);
+    return;
+  }
+  
+  console.log(`🏷️  Genre: ${genre}`);
+  console.log(`📄 Pages per shelf: ${maxPages}`);
+  console.log(`📁 Save to database: ${save ? 'Yes' : 'No (dry run)'}`);
+  console.log('─'.repeat(50));
+  
+  // Phase 1: Discover series names from shelves
+  console.log('\n📡 Phase 1: Discovering series from Goodreads shelves...\n');
+  
+  const discoveredSeries = await discoverSeriesFromShelves(genre, maxPages, (shelf, total) => {
+    console.log(`  [Shelf: ${shelf}] Total unique series so far: ${total}`);
+  });
+  
+  console.log(`\n📊 Discovered ${discoveredSeries.length} unique series from shelves\n`);
+  
+  if (discoveredSeries.length === 0) {
+    console.log('No series found. Shelves may require sign-in or have changed format.');
+    return;
+  }
+  
+  if (!save) {
+    // Dry run — just show what we found
+    console.log('Top 30 discovered series:');
+    for (const s of discoveredSeries.slice(0, 30)) {
+      const existing = findSeriesByName(s.name);
+      const status = existing ? `✅ in DB${existing.genre ? ` [${existing.genre}]` : ''}` : '🆕 NEW';
+      console.log(`  ${status} ${s.name} by ${s.author}`);
+    }
+    if (discoveredSeries.length > 30) {
+      console.log(`  ... and ${discoveredSeries.length - 30} more`);
+    }
+    
+    // Count how many are new
+    const newCount = discoveredSeries.filter(s => !findSeriesByName(s.name)).length;
+    console.log(`\n📊 ${newCount} new series (not in DB), ${discoveredSeries.length - newCount} already exist`);
+    console.log('💡 Run with --save to fetch full details and persist new series');
+    return;
+  }
+  
+  // Phase 2: For each NEW series, fetch full data via Goodreads and save
+  console.log('📥 Phase 2: Fetching and saving new series...\n');
+  
+  const db = getDb();
+  let alreadyExists = 0;
+  let saved = 0;
+  let notFound = 0;
+  let filtered = 0;
+  let errors = 0;
+  
+  for (let i = 0; i < discoveredSeries.length; i++) {
+    const seriesRef = discoveredSeries[i];
+    const progress = `[${i + 1}/${discoveredSeries.length}]`;
+    
+    // Language filter
+    if (shouldFilterSeries(seriesRef.name)) {
+      console.log(`${progress} 🌍 ${seriesRef.name} (non-English, skipped)`);
+      filtered++;
+      continue;
+    }
+    
+    // Check if already in database
+    const existing = findSeriesByName(seriesRef.name);
+    if (existing) {
+      // Update genre if missing
+      if (!existing.genre || existing.genre === 'fiction') {
+        updateSeriesGenre(existing.id, genre);
+      }
+      alreadyExists++;
+      continue; // Silent skip for existing — too many to log
+    }
+    
+    // Fetch full series data from Goodreads
+    try {
+      const series = await fetchGoodreads(seriesRef.name);
+      
+      if (!series || series.books.length === 0) {
+        console.log(`${progress} ⚠️  ${seriesRef.name} (not found on Goodreads)`);
+        notFound++;
+        continue;
+      }
+      
+      // Save to database
+      const seriesId = saveSourceSeries(series, series.sourceId);
+      updateSeriesGenre(seriesId, genre);
+      
+      console.log(`${progress} ✅ ${series.name} - ${series.books.length} books [${genre}]`);
+      saved++;
+    } catch (error) {
+      console.log(`${progress} ❌ ${seriesRef.name}: ${error}`);
+      errors++;
+    }
+  }
+  
+  console.log('');
+  console.log('─'.repeat(50));
+  console.log('📊 Shelf Import Summary:');
+  console.log(`  Genre: ${genre}`);
+  console.log(`  Discovered from shelves: ${discoveredSeries.length}`);
+  console.log(`  Already in DB: ${alreadyExists}`);
+  console.log(`  Saved: ${saved}`);
+  console.log(`  Not found on Goodreads: ${notFound}`);
+  console.log(`  Filtered (non-English): ${filtered}`);
+  console.log(`  Errors: ${errors}`);
+  
+  const stats = getStats();
+  console.log(`\n📈 Database now has ${stats.totalSeries} series, ${stats.totalBooks} books`);
+}
+
+// =============================================================================
+// Google Books Enrichment (Combo 1, Layer 3)
+// =============================================================================
+
+/**
+ * Enrich existing series with descriptions and ISBNs from Google Books.
+ * Processes series that are missing descriptions, updating them in place.
+ */
+async function runGoogleBooksEnrich(limit = 100, genre?: string, doDescriptions = true, doIsbns = false) {
+  console.log('📖 Google Books Enrichment');
+  console.log('─'.repeat(50));
+  console.log(`📊 Limit: ${limit} series`);
+  if (genre) console.log(`🏷️  Genre filter: ${genre}`);
+  console.log(`📝 Descriptions: ${doDescriptions ? 'Yes' : 'No'}`);
+  console.log(`🔢 ISBNs: ${doIsbns ? 'Yes' : 'No'}`);
+  console.log('─'.repeat(50));
+  
+  const db = getDb();
+  
+  // Get series needing enrichment
+  let query: string;
+  const params: (string | number)[] = [];
+  
+  if (doDescriptions) {
+    query = `
+      SELECT s.id, s.name, s.author, s.genre, s.description
+      FROM series s
+      WHERE (s.description IS NULL OR s.description = '')
+      ${genre ? 'AND s.genre = ?' : ''}
+      ORDER BY s.confidence DESC, s.total_books DESC
+      LIMIT ?
+    `;
+    if (genre) params.push(genre);
+    params.push(limit);
+  } else {
+    // ISBNs only — get series that have books without ISBNs
+    query = `
+      SELECT DISTINCT s.id, s.name, s.author, s.genre, s.description
+      FROM series s
+      JOIN series_book sb ON sb.series_id = s.id
+      WHERE (sb.isbn IS NULL OR sb.isbn = '')
+      ${genre ? 'AND s.genre = ?' : ''}
+      ORDER BY s.confidence DESC
+      LIMIT ?
+    `;
+    if (genre) params.push(genre);
+    params.push(limit);
+  }
+  
+  const seriesToEnrich = db.prepare(query).all(...params) as Array<{
+    id: string; name: string; author: string | null; genre: string | null; description: string | null;
+  }>;
+  
+  console.log(`\nFound ${seriesToEnrich.length} series to enrich\n`);
+  
+  let descriptionsAdded = 0;
+  let isbnsAdded = 0;
+  let noResults = 0;
+  let errors = 0;
+  
+  for (let i = 0; i < seriesToEnrich.length; i++) {
+    const series = seriesToEnrich[i];
+    const progress = `[${i + 1}/${seriesToEnrich.length}]`;
+    
+    try {
+      // Get the books for this series (for description lookup and ISBN enrichment)
+      const books = db.prepare(`
+        SELECT id, title, author, isbn FROM series_book WHERE series_id = ? ORDER BY position ASC LIMIT 5
+      `).all(series.id) as Array<{ id: string; title: string; author: string | null; isbn: string | null }>;
+      
+      // Enrich description
+      if (doDescriptions && (!series.description || series.description === '')) {
+        // Build lookup list: use books if available, otherwise try series name directly
+        const lookupBooks = books.length > 0
+          ? books.map(b => ({ title: b.title, author: b.author || series.author || undefined }))
+          : [{ title: series.name, author: series.author || undefined }];
+        
+        const descResult = await getSeriesDescription(lookupBooks, series.name);
+        
+        if (descResult) {
+          db.prepare("UPDATE series SET description = ?, updated_at = datetime('now') WHERE id = ?")
+            .run(descResult.description, series.id);
+          console.log(`${progress} 📝 ${series.name} — description added (${descResult.description.length} chars)`);
+          descriptionsAdded++;
+        } else {
+          console.log(`${progress} ⏭️  ${series.name} — no description found`);
+          noResults++;
+        }
+      }
+      
+      // Enrich ISBNs
+      if (doIsbns && books.length > 0) {
+        for (const book of books) {
+          if (book.isbn) continue; // Already has ISBN
+          
+          const enrichment = await searchBook(book.title, book.author || series.author || undefined);
+          
+          if (enrichment?.isbn13 || enrichment?.isbn10) {
+            const isbn = enrichment.isbn13 || enrichment.isbn10;
+            db.prepare("UPDATE series_book SET isbn = ?, updated_at = datetime('now') WHERE id = ?")
+              .run(isbn, book.id);
+            isbnsAdded++;
+          }
+        }
+        console.log(`${progress} 🔢 ${series.name} — ISBNs checked`);
+      }
+    } catch (error) {
+      console.log(`${progress} ❌ ${series.name}: ${error}`);
+      errors++;
+    }
+  }
+  
+  console.log('');
+  console.log('─'.repeat(50));
+  console.log('📊 Enrichment Summary:');
+  console.log(`  Processed: ${seriesToEnrich.length} series`);
+  if (doDescriptions) console.log(`  Descriptions added: ${descriptionsAdded}`);
+  if (doIsbns) console.log(`  ISBNs added: ${isbnsAdded}`);
+  console.log(`  No results: ${noResults}`);
+  console.log(`  Errors: ${errors}`);
+}
+
+// =============================================================================
+// Automated Full Discovery (discover-all)
+// =============================================================================
+
+interface DiscoverAllOptions {
+  shelfPages: number;
+  skipSeeds: boolean;
+  skipShelves: boolean;
+  skipEnrich: boolean;
+}
+
+/**
+ * Automated full-scan discovery pipeline.
+ * Runs through ALL sources (seeds, shelves, enrichment) until everything is processed.
+ * Respects all rate limits built into each source module.
+ */
+async function runDiscoverAll(options: DiscoverAllOptions) {
+  const globalStart = Date.now();
+  const statsBefore = getStats();
+  
+  const formatElapsed = (ms: number) => {
+    const totalSec = Math.floor(ms / 1000);
+    const hrs = Math.floor(totalSec / 3600);
+    const mins = Math.floor((totalSec % 3600) / 60);
+    const secs = totalSec % 60;
+    if (hrs > 0) return `${hrs}h ${mins}m ${secs}s`;
+    if (mins > 0) return `${mins}m ${secs}s`;
+    return `${secs}s`;
+  };
+  
+  console.log('🚀 FULL AUTOMATED DISCOVERY');
+  console.log('═'.repeat(60));
+  console.log(`📅 Started: ${new Date().toISOString()}`);
+  console.log(`📊 Database before: ${statsBefore.totalSeries} series, ${statsBefore.totalBooks} books`);
+  console.log(`🔧 Shelf pages per genre: ${options.shelfPages}`);
+  console.log(`⏭️  Skip seeds: ${options.skipSeeds}  | Skip shelves: ${options.skipShelves}  | Skip enrich: ${options.skipEnrich}`);
+  console.log('═'.repeat(60));
+  
+  const phaseResults: Array<{
+    phase: string;
+    newSeries: number;
+    newBooks: number;
+    elapsed: number;
+  }> = [];
+  
+  // ─── Seed File Genre Mapping ───
+  const seedGenreMap: Record<string, string> = {
+    'litrpg': 'litrpg',
+    'post-apocalyptic': 'post-apocalyptic',
+    'fantasy-supplemental': 'fantasy',
+    'science-fiction-supplemental': 'science-fiction',
+    'fantasy': 'fantasy',
+    'science-fiction': 'science-fiction',
+    'horror': 'horror',
+    'romance': 'romance',
+    'mystery': 'mystery',
+    'thriller': 'thriller',
+  };
+  
+  // ═══════════════════════════════════════════════════════════════
+  // PHASE 1: Seed File Imports (Layer 1 — highest precision)
+  // ═══════════════════════════════════════════════════════════════
+  if (!options.skipSeeds) {
+    const seedDir = join(process.cwd(), 'data', 'seeds');
+    
+    if (existsSync(seedDir)) {
+      const seedFiles = readdirSync(seedDir)
+        .filter(f => f.endsWith('.txt'))
+        .map(f => f.replace('.txt', ''));
+      
+      console.log(`\n${'═'.repeat(60)}`);
+      console.log(`📦 PHASE 1: SEED FILE IMPORTS (${seedFiles.length} files)`);
+      console.log('═'.repeat(60));
+      
+      for (const seedName of seedFiles) {
+        const phaseStart = Date.now();
+        const beforeStats = getStats();
+        
+        console.log(`\n${'─'.repeat(50)}`);
+        console.log(`🌱 Seed file: ${seedName}`);
+        console.log('─'.repeat(50));
+        
+        const seedFile = join(seedDir, `${seedName}.txt`);
+        const content = readFileSync(seedFile, 'utf-8');
+        const seriesNames = content
+          .split('\n')
+          .map(line => line.trim())
+          .filter(line => line.length > 0 && !line.startsWith('#'));
+        
+        // Deduplicate
+        const seen = new Set<string>();
+        const uniqueNames = seriesNames.filter(name => {
+          const key = name.toLowerCase();
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+        
+        const canonicalGenre = seedGenreMap[seedName] || seedName;
+        const db = getDb();
+        let saved = 0;
+        let skipped = 0;
+        let notFound = 0;
+        let errors = 0;
+        
+        console.log(`  📊 ${uniqueNames.length} unique names | Genre: ${canonicalGenre}`);
+        
+        for (let i = 0; i < uniqueNames.length; i++) {
+          const seriesName = uniqueNames[i];
+          
+          // Language filter
+          if (shouldFilterSeries(seriesName)) { skipped++; continue; }
+          
+          // Already in DB?
+          const existing = findSeriesByName(seriesName);
+          if (existing) {
+            // Update genre if missing
+            if (!existing.genre || existing.genre === 'fiction') {
+              updateSeriesGenre(existing.id, canonicalGenre);
+            }
+            skipped++;
+            continue;
+          }
+          
+          // Fetch from Goodreads
+          try {
+            const series = await fetchGoodreads(seriesName);
+            if (!series || series.books.length === 0) {
+              notFound++;
+              continue;
+            }
+            
+            const seriesId = saveSourceSeries(series, series.sourceId);
+            updateSeriesGenre(seriesId, canonicalGenre);
+            saved++;
+            
+            if (saved % 5 === 0 || saved === 1) {
+              const elapsed = formatElapsed(Date.now() - phaseStart);
+              console.log(`  [${seedName}] ✅ ${saved} saved so far (${i + 1}/${uniqueNames.length}) | ${elapsed}`);
+            }
+          } catch (error) {
+            const msg = error instanceof Error ? error.message : String(error);
+            console.log(`  [${seedName}] ❌ ${seriesName}: ${msg}`);
+            errors++;
+          }
+        }
+        
+        const afterStats = getStats();
+        const phaseElapsed = Date.now() - phaseStart;
+        
+        phaseResults.push({
+          phase: `Seeds: ${seedName}`,
+          newSeries: afterStats.totalSeries - beforeStats.totalSeries,
+          newBooks: afterStats.totalBooks - beforeStats.totalBooks,
+          elapsed: phaseElapsed,
+        });
+        
+        console.log(`  ✅ Done: +${afterStats.totalSeries - beforeStats.totalSeries} series, +${afterStats.totalBooks - beforeStats.totalBooks} books | ${formatElapsed(phaseElapsed)} | Skipped: ${skipped} | NotFound: ${notFound} | Errors: ${errors}`);
+      }
+    } else {
+      console.log('\n⚠️  No seed directory found, skipping Phase 1');
+    }
+  } else {
+    console.log('\n⏭️  Phase 1 (Seeds) — skipped by flag');
+  }
+  
+  // ═══════════════════════════════════════════════════════════════
+  // PHASE 2: Goodreads Shelf Scraping (Layer 2 — bulk discovery)
+  // ═══════════════════════════════════════════════════════════════
+  if (!options.skipShelves) {
+    const shelfGenres = Object.keys(GENRE_SHELF_MAP);
+    
+    console.log(`\n${'═'.repeat(60)}`);
+    console.log(`📚 PHASE 2: SHELF SCRAPING (${shelfGenres.length} genres, ${options.shelfPages} pages each)`);
+    console.log('═'.repeat(60));
+    
+    for (const genre of shelfGenres) {
+      const phaseStart = Date.now();
+      const beforeStats = getStats();
+      
+      console.log(`\n${'─'.repeat(50)}`);
+      console.log(`📚 Shelf genre: ${genre} (${GENRE_SHELF_MAP[genre].length} shelf tags)`);
+      console.log('─'.repeat(50));
+      
+      // Phase 2a: Discover series names from shelves
+      let discoveredSeries: Array<{ name: string; author: string }>;
+      try {
+        discoveredSeries = await discoverSeriesFromShelves(genre, options.shelfPages, (shelf, total) => {
+          console.log(`  [${shelf}] ${total} unique series discovered`);
+        });
+      } catch (error) {
+        console.log(`  ❌ Shelf scraping failed: ${error}`);
+        phaseResults.push({ phase: `Shelves: ${genre}`, newSeries: 0, newBooks: 0, elapsed: Date.now() - phaseStart });
+        continue;
+      }
+      
+      console.log(`  📊 Discovered ${discoveredSeries.length} series from shelves`);
+      
+      // Phase 2b: Fetch and save new series
+      let saved = 0;
+      let skipped = 0;
+      let notFound = 0;
+      let errors = 0;
+      
+      for (let i = 0; i < discoveredSeries.length; i++) {
+        const seriesRef = discoveredSeries[i];
+        
+        if (shouldFilterSeries(seriesRef.name)) { skipped++; continue; }
+        
+        const existing = findSeriesByName(seriesRef.name);
+        if (existing) {
+          if (!existing.genre || existing.genre === 'fiction') {
+            updateSeriesGenre(existing.id, genre);
+          }
+          skipped++;
+          continue;
+        }
+        
+        try {
+          const series = await fetchGoodreads(seriesRef.name);
+          if (!series || series.books.length === 0) {
+            notFound++;
+            continue;
+          }
+          
+          const seriesId = saveSourceSeries(series, series.sourceId);
+          updateSeriesGenre(seriesId, genre);
+          saved++;
+          
+          if (saved % 10 === 0 || saved === 1) {
+            const elapsed = formatElapsed(Date.now() - phaseStart);
+            console.log(`  [${genre}] ✅ ${saved} saved so far (${i + 1}/${discoveredSeries.length}) | ${elapsed}`);
+          }
+        } catch (error) {
+          const msg = error instanceof Error ? error.message : String(error);
+          console.log(`  [${genre}] ❌ ${seriesRef.name}: ${msg}`);
+          errors++;
+        }
+      }
+      
+      const afterStats = getStats();
+      const phaseElapsed = Date.now() - phaseStart;
+      
+      phaseResults.push({
+        phase: `Shelves: ${genre}`,
+        newSeries: afterStats.totalSeries - beforeStats.totalSeries,
+        newBooks: afterStats.totalBooks - beforeStats.totalBooks,
+        elapsed: phaseElapsed,
+      });
+      
+      console.log(`  ✅ Done: +${afterStats.totalSeries - beforeStats.totalSeries} series, +${afterStats.totalBooks - beforeStats.totalBooks} books | ${formatElapsed(phaseElapsed)} | Skipped: ${skipped} | NotFound: ${notFound} | Errors: ${errors}`);
+    }
+  } else {
+    console.log('\n⏭️  Phase 2 (Shelves) — skipped by flag');
+  }
+  
+  // ═══════════════════════════════════════════════════════════════
+  // PHASE 3: Google Books Enrichment (Layer 3 — metadata quality)
+  // ═══════════════════════════════════════════════════════════════
+  if (!options.skipEnrich) {
+    console.log(`\n${'═'.repeat(60)}`);
+    console.log('📖 PHASE 3: GOOGLE BOOKS ENRICHMENT');
+    console.log('═'.repeat(60));
+    
+    const db = getDb();
+    
+    // 3a: Descriptions (batch of 500 at a time, loop until all done)
+    console.log('\n📝 Phase 3a: Adding descriptions...');
+    
+    let totalDescriptions = 0;
+    let descBatchNum = 0;
+    const ENRICH_BATCH = 500;
+    
+    while (true) {
+      descBatchNum++;
+      const phaseStart = Date.now();
+      
+      const seriesToEnrich = db.prepare(`
+        SELECT s.id, s.name, s.author, s.genre, s.description
+        FROM series s
+        WHERE (s.description IS NULL OR s.description = '')
+        ORDER BY s.confidence DESC, s.total_books DESC
+        LIMIT ?
+      `).all(ENRICH_BATCH) as Array<{
+        id: string; name: string; author: string | null; genre: string | null; description: string | null;
+      }>;
+      
+      if (seriesToEnrich.length === 0) {
+        console.log('  ✅ All series have descriptions (or no more to process)');
+        break;
+      }
+      
+      console.log(`  Batch ${descBatchNum}: ${seriesToEnrich.length} series without descriptions`);
+      
+      let added = 0;
+      let noResult = 0;
+      let errors = 0;
+      
+      for (let i = 0; i < seriesToEnrich.length; i++) {
+        const series = seriesToEnrich[i];
+        
+        try {
+          const books = db.prepare(`
+            SELECT id, title, author, isbn FROM series_book WHERE series_id = ? ORDER BY position ASC LIMIT 5
+          `).all(series.id) as Array<{ id: string; title: string; author: string | null; isbn: string | null }>;
+          
+          const lookupBooks = books.length > 0
+            ? books.map(b => ({ title: b.title, author: b.author || series.author || undefined }))
+            : [{ title: series.name, author: series.author || undefined }];
+          
+          const descResult = await getSeriesDescription(lookupBooks, series.name);
+          
+          if (descResult) {
+            db.prepare("UPDATE series SET description = ?, updated_at = datetime('now') WHERE id = ?")
+              .run(descResult.description, series.id);
+            added++;
+          } else {
+            // Mark as attempted so we don't retry forever (store empty placeholder)
+            db.prepare("UPDATE series SET description = '[none]', updated_at = datetime('now') WHERE id = ?")
+              .run(series.id);
+            noResult++;
+          }
+        } catch (error) {
+          const msg = error instanceof Error ? error.message : String(error);
+          if (errors < 5) console.log(`  ❌ ${series.name}: ${msg}`);
+          else if (errors === 5) console.log(`  ❌ (suppressing further error messages)`);
+          errors++;
+        }
+        
+        // Progress every 50
+        if ((i + 1) % 50 === 0) {
+          const elapsed = formatElapsed(Date.now() - phaseStart);
+          const rate = ((i + 1) / ((Date.now() - phaseStart) / 1000)).toFixed(1);
+          const remaining = seriesToEnrich.length - i - 1;
+          const eta = formatElapsed(remaining / parseFloat(rate) * 1000);
+          console.log(`  [Desc batch ${descBatchNum}] ${i + 1}/${seriesToEnrich.length} | +${added} descriptions | ${rate}/sec | ETA: ${eta}`);
+        }
+      }
+      
+      totalDescriptions += added;
+      console.log(`  Batch ${descBatchNum} done: +${added} descriptions, ${noResult} no-result, ${errors} errors | ${formatElapsed(Date.now() - phaseStart)}`);
+      
+      // If we got a full batch, there might be more
+      if (seriesToEnrich.length < ENRICH_BATCH) break;
+    }
+    
+    // 3b: ISBNs (batch of 500 at a time)
+    console.log('\n🔢 Phase 3b: Adding ISBNs...');
+    
+    let totalIsbns = 0;
+    let isbnBatchNum = 0;
+    
+    while (true) {
+      isbnBatchNum++;
+      const phaseStart = Date.now();
+      
+      const booksToEnrich = db.prepare(`
+        SELECT sb.id, sb.title, sb.author, sb.series_id, s.author as series_author
+        FROM series_book sb
+        JOIN series s ON sb.series_id = s.id
+        WHERE (sb.isbn IS NULL OR sb.isbn = '')
+        ORDER BY s.confidence DESC
+        LIMIT ?
+      `).all(ENRICH_BATCH) as Array<{
+        id: string; title: string; author: string | null; series_id: string; series_author: string | null;
+      }>;
+      
+      if (booksToEnrich.length === 0) {
+        console.log('  ✅ All books have ISBNs (or no more to process)');
+        break;
+      }
+      
+      console.log(`  Batch ${isbnBatchNum}: ${booksToEnrich.length} books without ISBNs`);
+      
+      let added = 0;
+      let noResult = 0;
+      let errors = 0;
+      
+      for (let i = 0; i < booksToEnrich.length; i++) {
+        const book = booksToEnrich[i];
+        
+        try {
+          const enrichment = await searchBook(book.title, book.author || book.series_author || undefined);
+          
+          if (enrichment?.isbn13 || enrichment?.isbn10) {
+            const isbn = enrichment.isbn13 || enrichment.isbn10;
+            db.prepare("UPDATE series_book SET isbn = ?, updated_at = datetime('now') WHERE id = ?")
+              .run(isbn, book.id);
+            added++;
+          } else {
+            // Mark as attempted
+            db.prepare("UPDATE series_book SET isbn = 'none', updated_at = datetime('now') WHERE id = ?")
+              .run(book.id);
+            noResult++;
+          }
+        } catch (error) {
+          const msg = error instanceof Error ? error.message : String(error);
+          if (errors < 5) console.log(`  ❌ ISBN error: ${msg}`);
+          else if (errors === 5) console.log(`  ❌ (suppressing further error messages)`);
+          errors++;
+        }
+        
+        // Progress every 100
+        if ((i + 1) % 100 === 0) {
+          const elapsed = formatElapsed(Date.now() - phaseStart);
+          const rate = ((i + 1) / ((Date.now() - phaseStart) / 1000)).toFixed(1);
+          const remaining = booksToEnrich.length - i - 1;
+          const eta = formatElapsed(remaining / parseFloat(rate) * 1000);
+          console.log(`  [ISBN batch ${isbnBatchNum}] ${i + 1}/${booksToEnrich.length} | +${added} ISBNs | ${rate}/sec | ETA: ${eta}`);
+        }
+      }
+      
+      totalIsbns += added;
+      console.log(`  Batch ${isbnBatchNum} done: +${added} ISBNs, ${noResult} no-result, ${errors} errors | ${formatElapsed(Date.now() - phaseStart)}`);
+      
+      if (booksToEnrich.length < ENRICH_BATCH) break;
+    }
+    
+    phaseResults.push({
+      phase: 'Enrichment (descriptions)',
+      newSeries: 0,
+      newBooks: 0,
+      elapsed: 0, // tracked in sub-batches
+    });
+    
+    console.log(`\n  📊 Enrichment totals: +${totalDescriptions} descriptions, +${totalIsbns} ISBNs`);
+  } else {
+    console.log('\n⏭️  Phase 3 (Enrichment) — skipped by flag');
+  }
+  
+  // ═══════════════════════════════════════════════════════════════
+  // FINAL REPORT
+  // ═══════════════════════════════════════════════════════════════
+  const statsAfter = getStats();
+  const totalElapsed = Date.now() - globalStart;
+  
+  console.log(`\n${'═'.repeat(60)}`);
+  console.log('🏁 DISCOVER-ALL COMPLETE');
+  console.log('═'.repeat(60));
+  console.log(`  ⏱️  Total time: ${formatElapsed(totalElapsed)}`);
+  console.log(`  📅 Finished: ${new Date().toISOString()}`);
+  console.log('');
+  console.log(`  Series: ${statsBefore.totalSeries} → ${statsAfter.totalSeries} (+${statsAfter.totalSeries - statsBefore.totalSeries})`);
+  console.log(`  Books:  ${statsBefore.totalBooks} → ${statsAfter.totalBooks} (+${statsAfter.totalBooks - statsBefore.totalBooks})`);
+  
+  console.log('');
+  console.log('  Phase Breakdown:');
+  console.log('  ' + '─'.repeat(56));
+  for (const r of phaseResults) {
+    const pad = r.phase.padEnd(30);
+    console.log(`  ${pad} +${r.newSeries} series, +${r.newBooks} books (${formatElapsed(r.elapsed)})`);
+  }
+  
+  console.log('');
+  console.log('  Genre Breakdown:');
+  console.log('  ' + '─'.repeat(56));
+  for (const [genre, count] of Object.entries(statsAfter.seriesByGenre || {}).sort((a, b) => b[1] - a[1])) {
+    const before = (statsBefore.seriesByGenre as Record<string, number>)?.[genre] || 0;
+    const diff = count - before;
+    const diffStr = diff > 0 ? ` (+${diff})` : '';
+    console.log(`  ${genre.padEnd(25)} ${count}${diffStr}`);
+  }
+  
+  const untaggedCount = (getDb().prepare(`SELECT COUNT(*) as count FROM series WHERE genre IS NULL`).get() as { count: number }).count;
+  console.log(`  ${'(untagged)'.padEnd(25)} ${untaggedCount}`);
+  console.log('═'.repeat(60));
+}
+
+
+// =============================================================================
+// Backfill Books for Series with 0 Book Records
+// =============================================================================
+
+async function runBackfillBooks(save = false, limit = 0, genre?: string) {
+  console.log('🔧 Backfill Books for Bookless Series');
+  console.log('─'.repeat(60));
+
+  if (!save) {
+    console.log('⚠️  Dry run mode - use --save to persist changes');
+  }
+
+  const db = getDb();
+
+  // Find all series with 0 books in series_book table
+  let sql = `
+    SELECT s.* FROM series s
+    LEFT JOIN series_book sb ON sb.series_id = s.id
+    WHERE sb.id IS NULL
+  `;
+  const params: (string | number)[] = [];
+
+  if (genre) {
+    sql += ' AND s.genre = ?';
+    params.push(genre);
+  }
+
+  sql += ' ORDER BY s.genre, s.name';
+  if (limit > 0) {
+    sql += ' LIMIT ?';
+    params.push(limit);
+  }
+
+  const booklessSeries = db.prepare(sql).all(...params) as SeriesRecord[];
+
+  console.log(`Found ${booklessSeries.length} series with 0 book records`);
+  if (genre) console.log(`  Filtered to genre: ${genre}`);
+  console.log('');
+
+  if (booklessSeries.length === 0) {
+    console.log('✅ Nothing to backfill!');
+    return;
+  }
+
+  let goodreadsFound = 0;
+  let openLibraryFound = 0;
+  let notFound = 0;
+  let errors = 0;
+  let totalBooksAdded = 0;
+
+  for (let i = 0; i < booklessSeries.length; i++) {
+    const series = booklessSeries[i];
+    const progress = `[${i + 1}/${booklessSeries.length}]`;
+    const label = `${series.name}${series.author ? ` by ${series.author}` : ''} (${series.genre || 'untagged'})`;
+
+    // Step 1: Try Goodreads (searches by series name + author)
+    try {
+      console.log(`${progress} 🔍 Goodreads: ${label}`);
+      const grResult = await fetchGoodreads(series.name, series.author || undefined);
+
+      if (grResult && grResult.books.length > 0) {
+        console.log(`${progress} ✅ Goodreads: ${grResult.books.length} books found`);
+        goodreadsFound++;
+
+        if (save) {
+          // Update series metadata
+          upsertSeries({
+            id: series.id,
+            name: series.name,
+            author: grResult.author || series.author || null,
+            genre: series.genre || null,
+            total_books: grResult.books.length,
+            description: grResult.description || series.description || null,
+            confidence: Math.max(series.confidence, 0.85),
+          });
+
+          // Insert all books
+          for (const book of grResult.books) {
+            upsertSeriesBook({
+              series_id: series.id,
+              title: book.title,
+              author: book.author || grResult.author || series.author || null,
+              position: book.position ?? null,
+              year_published: book.yearPublished ?? null,
+              isbn: book.isbn || null,
+              confidence: 0.85,
+            });
+            totalBooksAdded++;
+          }
+
+          // Store Goodreads source data
+          if (grResult.sourceId) {
+            try {
+              storeSourceData(series.id, 'goodreads', {
+                goodreadsId: grResult.sourceId,
+                url: `https://www.goodreads.com/series/${grResult.sourceId}`,
+              }, grResult.books.length);
+            } catch {
+              // Ignore if already exists
+            }
+          }
+
+          for (const book of grResult.books.slice(0, 3)) {
+            console.log(`       #${book.position || '?'}: ${book.title}`);
+          }
+          if (grResult.books.length > 3) {
+            console.log(`       ... and ${grResult.books.length - 3} more`);
+          }
+        }
+        continue;
+      }
+    } catch (err) {
+      console.log(`${progress} ⚠️  Goodreads error: ${err instanceof Error ? err.message : err}`);
+    }
+
+    // Step 2: Fallback to Open Library
+    try {
+      console.log(`${progress} 🔍 OpenLibrary: ${label}`);
+      const olResult = await fetchOpenLibrary(series.name);
+
+      if (olResult.series && olResult.series.books.length > 0) {
+        const books = olResult.series.books;
+        console.log(`${progress} ✅ OpenLibrary: ${books.length} books found`);
+        openLibraryFound++;
+
+        if (save) {
+          // Update series metadata
+          upsertSeries({
+            id: series.id,
+            name: series.name,
+            author: olResult.series.author || series.author || null,
+            genre: series.genre || null,
+            total_books: books.length,
+            description: series.description || null,
+            confidence: Math.max(series.confidence, 0.7),
+          });
+
+          // Insert all books
+          for (const book of books) {
+            upsertSeriesBook({
+              series_id: series.id,
+              title: book.title,
+              author: book.author || olResult.series.author || series.author || null,
+              position: book.position ?? null,
+              year_published: book.yearPublished ?? null,
+              isbn: book.isbn || null,
+              openlibrary_key: book.sourceId || null,
+              confidence: 0.7,
+            });
+            totalBooksAdded++;
+          }
+
+          for (const book of books.slice(0, 3)) {
+            console.log(`       #${book.position || '?'}: ${book.title}`);
+          }
+          if (books.length > 3) {
+            console.log(`       ... and ${books.length - 3} more`);
+          }
+        }
+        continue;
+      }
+    } catch (err) {
+      console.log(`${progress} ⚠️  OpenLibrary error: ${err instanceof Error ? err.message : err}`);
+      errors++;
+    }
+
+    // Neither source found books
+    console.log(`${progress} ❌ No books found: ${series.name}`);
+    notFound++;
+  }
+
+  // Summary
+  console.log('');
+  console.log('═'.repeat(60));
+  console.log('📊 Backfill Summary');
+  console.log('═'.repeat(60));
+  console.log(`  Total bookless series:  ${booklessSeries.length}`);
+  console.log(`  Found via Goodreads:    ${goodreadsFound}`);
+  console.log(`  Found via OpenLibrary:  ${openLibraryFound}`);
+  console.log(`  Not found anywhere:     ${notFound}`);
+  console.log(`  Errors:                 ${errors}`);
+  if (save) {
+    console.log(`  Books added to DB:      ${totalBooksAdded}`);
+    const stats = getStats();
+    console.log(`  DB now has ${stats.totalSeries} series, ${stats.totalBooks} books`);
+  } else {
+    console.log('');
+    console.log('💡 Run with --save to persist changes');
+  }
+  console.log('═'.repeat(60));
+}
+
+/**
+ * Link sub-series to their parent series by re-parsing ISFDB pages.
+ * Scans all series with ISFDB IDs, fetches their pages, and sets up
+ * parent_series_id links where sub-series relationships exist.
+ */
+async function runLinkSubSeries(limit = 0, dryRun = false) {
+  console.log('🔗 Link Sub-Series');
+  console.log('─'.repeat(60));
+  console.log(dryRun ? '⚠️  DRY RUN — no changes will be saved' : '💾 Will save parent links to database');
+  console.log('');
+
+  const db = getDb();
+
+  // Get all series that have ISFDB IDs (these are the ones we can look up)
+  const allSeries = db.prepare(`
+    SELECT id, name, isfdb_id, parent_series_id
+    FROM series
+    WHERE isfdb_id IS NOT NULL
+    ORDER BY total_books DESC
+  `).all() as Array<{ id: string; name: string; isfdb_id: string; parent_series_id: string | null }>;
+
+  const toProcess = limit > 0 ? allSeries.slice(0, limit) : allSeries;
+  console.log(`📋 Series with ISFDB IDs: ${allSeries.length}`);
+  console.log(`📋 Processing: ${toProcess.length}`);
+  console.log('');
+
+  let linked = 0;
+  let alreadyLinked = 0;
+  let parentNotFound = 0;
+  let noParent = 0;
+  let errors = 0;
+
+  for (let i = 0; i < toProcess.length; i++) {
+    const series = toProcess[i];
+
+    // Skip if already has a parent
+    if (series.parent_series_id) {
+      alreadyLinked++;
+      continue;
+    }
+
+    try {
+      // Fetch the ISFDB page to check for "Sub-series of:" metadata
+      const result = await fetchSeriesById(series.isfdb_id);
+
+      if (!result.series) {
+        errors++;
+        continue;
+      }
+
+      if (result.series.parentSeriesId) {
+        // This series IS a sub-series — find the parent in our DB
+        const parent = findSeriesByIsfdbId(result.series.parentSeriesId);
+
+        if (parent) {
+          if (!dryRun) {
+            setParentSeries(series.id, parent.id);
+          }
+          linked++;
+          console.log(`  ✅ ${series.name} → parent: ${parent.name}${dryRun ? ' (dry run)' : ''}`);
+        } else {
+          parentNotFound++;
+          console.log(`  ⚠️  ${series.name} → parent ISFDB ID ${result.series.parentSeriesId} not in DB`);
+        }
+      } else {
+        noParent++;
+      }
+
+      // Progress every 50
+      if ((i + 1) % 50 === 0) {
+        console.log(`  ... processed ${i + 1}/${toProcess.length} (linked: ${linked}, no parent: ${noParent})`);
+      }
+
+    } catch (error) {
+      errors++;
+      console.error(`  ❌ Error processing ${series.name}: ${error}`);
+    }
+  }
+
+  console.log('');
+  console.log('═'.repeat(60));
+  console.log('📊 Link Sub-Series Summary');
+  console.log('═'.repeat(60));
+  console.log(`  Processed:           ${toProcess.length}`);
+  console.log(`  Newly linked:        ${linked}`);
+  console.log(`  Already linked:      ${alreadyLinked}`);
+  console.log(`  Parent not in DB:    ${parentNotFound}`);
+  console.log(`  No parent (top-lvl): ${noParent}`);
+  console.log(`  Errors:              ${errors}`);
+
+  if (dryRun && linked > 0) {
+    console.log('');
+    console.log('💡 Run without --dry-run to persist changes');
+  }
+
+  // Show current hierarchy stats
+  const parentsList = getParentSeriesList(10);
+  if (parentsList.length > 0) {
+    console.log('');
+    console.log('🏛️  Top Parent Series (by child count):');
+    for (const p of parentsList) {
+      console.log(`  ${p.name}: ${p.childCount} sub-series`);
+    }
+  }
+
+  console.log('═'.repeat(60));
 }
 
 // Call main

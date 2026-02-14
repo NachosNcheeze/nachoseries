@@ -9,6 +9,7 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { config } from '../config.js';
 import { randomUUID } from 'crypto';
+import { registerCleanup } from '../utils/resilience.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -20,16 +21,28 @@ let db: Database.Database | null = null;
 export function initDatabase(): Database.Database {
   if (db) return db;
   
-  db = new Database(config.database.path);
-  db.pragma('journal_mode = WAL');
-  db.pragma('foreign_keys = ON');
-  
-  // Run schema
-  const schema = readFileSync(join(__dirname, 'schema.sql'), 'utf-8');
-  db.exec(schema);
-  
-  console.log(`[NachoSeries] Database initialized at ${config.database.path}`);
-  return db;
+  try {
+    db = new Database(config.database.path);
+    db.pragma('journal_mode = WAL');
+    db.pragma('foreign_keys = ON');
+    db.pragma('busy_timeout = 5000'); // Wait up to 5s if DB is locked
+    
+    // Run schema
+    const schema = readFileSync(join(__dirname, 'schema.sql'), 'utf-8');
+    db.exec(schema);
+    
+    // Migrations for existing databases
+    runMigrations(db);
+    
+    // Register cleanup so DB closes on crash/signal
+    registerCleanup(() => closeDatabase());
+    
+    console.log(`[NachoSeries] Database initialized at ${config.database.path}`);
+    return db;
+  } catch (error) {
+    console.error(`[NachoSeries] FATAL: Failed to initialize database at ${config.database.path}:`, error);
+    throw error;
+  }
 }
 
 /**
@@ -49,6 +62,51 @@ export function closeDatabase(): void {
   if (db) {
     db.close();
     db = null;
+  }
+}
+
+/**
+ * Run schema migrations for existing databases
+ * Each migration checks if it's needed before applying
+ */
+function runMigrations(db: Database.Database): void {
+  // Migration: Add parent_series_id column (sub-series hierarchy support)
+  const columns = db.prepare("PRAGMA table_info(series)").all() as Array<{ name: string }>;
+  const hasParentSeriesId = columns.some(c => c.name === 'parent_series_id');
+  
+  if (!hasParentSeriesId) {
+    console.log('[NachoSeries] Running migration: adding parent_series_id column');
+    db.exec('ALTER TABLE series ADD COLUMN parent_series_id TEXT REFERENCES series(id) ON DELETE SET NULL');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_series_parent ON series(parent_series_id)');
+    console.log('[NachoSeries] Migration complete: parent_series_id added');
+  }
+}
+
+/**
+ * Check database health — returns { ok, details } for health endpoints.
+ * Tests that the connection is alive and can execute a simple query.
+ */
+export function checkDatabaseHealth(): { ok: boolean; details: Record<string, unknown> } {
+  try {
+    const instance = getDb();
+    const result = instance.prepare('SELECT COUNT(*) as count FROM series').get() as { count: number };
+    const walMode = (instance.pragma('journal_mode') as Array<{ journal_mode: string }>)[0]?.journal_mode;
+    return {
+      ok: true,
+      details: {
+        seriesCount: result.count,
+        journalMode: walMode,
+        path: config.database.path,
+      },
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      details: {
+        error: error instanceof Error ? error.message : String(error),
+        path: config.database.path,
+      },
+    };
   }
 }
 
@@ -73,6 +131,7 @@ export interface SeriesRecord {
   librarything_id: string | null;
   openlibrary_key: string | null;
   isfdb_id: string | null;
+  parent_series_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -120,9 +179,10 @@ export function upsertSeries(series: Partial<SeriesRecord> & { name: string }): 
     INSERT INTO series (
       id, name, name_normalized, author, author_normalized, genre,
       total_books, year_start, year_end, description, confidence,
-      verified, last_verified, librarything_id, openlibrary_key, isfdb_id
+      verified, last_verified, librarything_id, openlibrary_key, isfdb_id,
+      parent_series_id
     ) VALUES (
-      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
     )
     ON CONFLICT(id) DO UPDATE SET
       name = excluded.name,
@@ -138,6 +198,7 @@ export function upsertSeries(series: Partial<SeriesRecord> & { name: string }): 
       librarything_id = COALESCE(excluded.librarything_id, librarything_id),
       openlibrary_key = COALESCE(excluded.openlibrary_key, openlibrary_key),
       isfdb_id = COALESCE(excluded.isfdb_id, isfdb_id),
+      parent_series_id = COALESCE(excluded.parent_series_id, parent_series_id),
       updated_at = datetime('now')
   `);
   
@@ -157,7 +218,8 @@ export function upsertSeries(series: Partial<SeriesRecord> & { name: string }): 
     series.last_verified || null,
     series.librarything_id || null,
     series.openlibrary_key || null,
-    series.isfdb_id || null
+    series.isfdb_id || null,
+    series.parent_series_id || null
   );
   
   return id;
@@ -650,6 +712,122 @@ export function findSeriesForBook(
 }
 
 // =============================================================================
+// Sub-Series / Hierarchy Operations
+// =============================================================================
+
+/**
+ * Get child series (direct children only) for a parent series
+ */
+export function getChildSeries(parentId: string): SeriesRecord[] {
+  const db = getDb();
+  
+  const stmt = db.prepare(`
+    SELECT * FROM series
+    WHERE parent_series_id = ?
+    ORDER BY name ASC
+  `);
+  
+  return stmt.all(parentId) as SeriesRecord[];
+}
+
+/**
+ * Get parent series for a child series
+ */
+export function getParentSeries(childId: string): SeriesRecord | null {
+  const db = getDb();
+  
+  const stmt = db.prepare(`
+    SELECT p.* FROM series p
+    JOIN series c ON c.parent_series_id = p.id
+    WHERE c.id = ?
+  `);
+  
+  const result = stmt.get(childId) as SeriesRecord | undefined;
+  return result || null;
+}
+
+/**
+ * Set the parent of a series (link child to parent)
+ */
+export function setParentSeries(childId: string, parentId: string | null): void {
+  const db = getDb();
+  
+  const stmt = db.prepare(`
+    UPDATE series SET parent_series_id = ?, updated_at = datetime('now')
+    WHERE id = ?
+  `);
+  
+  stmt.run(parentId, childId);
+}
+
+/**
+ * Get series with its children and books (full hierarchy view)
+ * Returns the series, its direct books, and its child series (with their book counts)
+ */
+export function getSeriesWithChildren(seriesId: number | string): {
+  series: SeriesRecord;
+  books: SeriesBookRecord[];
+  children: Array<SeriesRecord & { bookCount: number }>;
+  parent: SeriesRecord | null;
+} | null {
+  const db = getDb();
+  
+  const seriesStmt = db.prepare('SELECT * FROM series WHERE id = ?');
+  const series = seriesStmt.get(seriesId) as SeriesRecord | undefined;
+  
+  if (!series) return null;
+  
+  const books = getBooksInSeries(series.id);
+  
+  // Get child series with their book counts
+  const childStmt = db.prepare(`
+    SELECT s.*, COUNT(sb.id) as bookCount
+    FROM series s
+    LEFT JOIN series_book sb ON sb.series_id = s.id
+    WHERE s.parent_series_id = ?
+    GROUP BY s.id
+    ORDER BY s.name ASC
+  `);
+  const children = childStmt.all(series.id) as Array<SeriesRecord & { bookCount: number }>;
+  
+  // Get parent if this is itself a child
+  const parent = series.parent_series_id ? (
+    db.prepare('SELECT * FROM series WHERE id = ?').get(series.parent_series_id) as SeriesRecord | undefined
+  ) || null : null;
+  
+  return { series, books, children, parent };
+}
+
+/**
+ * Find a series by its ISFDB ID
+ */
+export function findSeriesByIsfdbId(isfdbId: string): SeriesRecord | null {
+  const db = getDb();
+  
+  const stmt = db.prepare('SELECT * FROM series WHERE isfdb_id = ? LIMIT 1');
+  const result = stmt.get(isfdbId) as SeriesRecord | undefined;
+  return result || null;
+}
+
+/**
+ * Get all series that have children (parent series)
+ */
+export function getParentSeriesList(limit = 100): Array<SeriesRecord & { childCount: number }> {
+  const db = getDb();
+  
+  const stmt = db.prepare(`
+    SELECT p.*, COUNT(c.id) as childCount
+    FROM series p
+    JOIN series c ON c.parent_series_id = p.id
+    GROUP BY p.id
+    ORDER BY childCount DESC
+    LIMIT ?
+  `);
+  
+  return stmt.all(limit) as Array<SeriesRecord & { childCount: number }>;
+}
+
+// =============================================================================
 // Goodreads Import / On-Demand Lookup
 // =============================================================================
 
@@ -679,6 +857,15 @@ export function saveSourceSeries(
   const existing = findSeriesByName(sourceSeries.name);
   const seriesId = existing?.id || randomUUID();
   
+  // Resolve parent_series_id if provided (ISFDB sub-series)
+  let parentSeriesId: string | null = null;
+  if (sourceSeries.parentSeriesId) {
+    const parent = findSeriesByIsfdbId(sourceSeries.parentSeriesId);
+    if (parent) {
+      parentSeriesId = parent.id;
+    }
+  }
+  
   // Upsert the series
   upsertSeries({
     id: seriesId,
@@ -689,6 +876,7 @@ export function saveSourceSeries(
     year_end: yearEnd,
     description: sourceSeries.description || null,
     confidence: 0.8, // Goodreads data is reliable
+    parent_series_id: parentSeriesId,
     // Store goodreads ID in a source field (we'll use librarything_id for now, could add goodreads_id column later)
   });
   
