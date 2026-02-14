@@ -61,7 +61,8 @@ CREATE TABLE IF NOT EXISTS series_book (
   created_at      TEXT DEFAULT (datetime('now')),
   updated_at      TEXT DEFAULT (datetime('now')),
   
-  FOREIGN KEY (series_id) REFERENCES series(id) ON DELETE CASCADE
+  FOREIGN KEY (series_id) REFERENCES series(id) ON DELETE CASCADE,
+  UNIQUE(series_id, title_normalized)
 );
 
 -- Source data tracking (raw data from each source)

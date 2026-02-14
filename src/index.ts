@@ -3,7 +3,7 @@
  * Aggregates and reconciles book series data from multiple sources
  */
 
-import { initDatabase, getStats, closeDatabase, upsertSeries, upsertSeriesBook, findSeriesByName, getSeriesNeedingVerification, storeSourceData, getDb, updateSeriesGenre, saveSourceSeries, findSeriesByIsfdbId, setParentSeries, getChildSeries, getParentSeriesList, type SeriesRecord } from './database/db.js';
+import { initDatabase, getStats, closeDatabase, upsertSeries, upsertSeriesBook, findSeriesByName, getSeriesNeedingVerification, storeSourceData, getDb, updateSeriesGenre, saveSourceSeries, findSeriesByIsfdbId, setParentSeries, getChildSeries, getParentSeriesList, moveBookToSeries, deleteSeriesBook, refreshSeriesBookCount, normalizeText, getBooksInSeries, type SeriesRecord } from './database/db.js';
 import { fetchSeries as fetchLibraryThing } from './sources/librarything.js';
 import { fetchSeries as fetchOpenLibrary } from './sources/openLibrary.js';
 import { fetchSeries as fetchISFDB, browseSeriesByGenre, fetchSeriesById, genreKeywords, discoverSeriesFromAuthors, scanSeriesRange, fetchPopularAuthors, fetchAuthorSeries, mapTagsToGenre, detectGenre, guessGenreFromName } from './sources/isfdb.js';
@@ -173,6 +173,17 @@ async function main() {
       break;
     }
 
+    case 'reconcile-subseries': {
+      // Reconcile flat series that should have sub-series structure
+      // Fetches parent ISFDB pages, creates missing sub-series, moves books
+      // Usage: reconcile-subseries [--limit=N] [--dry-run] [--series=NAME]
+      const rsLimit = parseInt(args.find(a => a.startsWith('--limit='))?.split('=')[1] || '0');
+      const rsDryRun = args.includes('--dry-run');
+      const rsSeries = args.find(a => a.startsWith('--series='))?.split('=').slice(1).join('=');
+      await runReconcileSubSeries(rsLimit, rsDryRun, rsSeries);
+      break;
+    }
+
     case 'save':
       await saveSeriesFromTest(args[1]);
       break;
@@ -208,6 +219,7 @@ async function main() {
       console.log('  cleanup           Remove non-English series (--confirm to execute)');
       console.log('  backfill          Backfill books for series with 0 book records');
       console.log('  link-subseries    Link sub-series to parents by re-parsing ISFDB pages');
+      console.log('  reconcile-subseries  Find flat series needing sub-series split & fix them');
       console.log('  daily             Run automated daily job (discover + tag)');
       console.log('');
       console.log('Options:');
@@ -470,6 +482,15 @@ async function runCrawl(genre?: string, saveToDb = false) {
       
       // Store raw source data
       storeSourceData(seriesId, 'isfdb', result.raw, series.books.length);
+      
+      // Process sub-series hierarchy if this series has sub-series or a parent
+      if (series.subSeries && series.subSeries.length > 0) {
+        console.log(`${progress}   🔗 Processing ${series.subSeries.length} sub-series...`);
+        await processSeriesHierarchy(series.sourceId!, { genre: targetGenre, verbose: false });
+      } else if (series.parentSeriesId) {
+        // This is a sub-series — process the parent to discover siblings
+        await processSeriesHierarchy(series.parentSeriesId, { genre: targetGenre, verbose: false });
+      }
       
       saved++;
     } else {
@@ -751,6 +772,14 @@ async function runDiscover(mode: string, saveToDb = false, limit = 100, genre?: 
     
     // Store raw source data
     storeSourceData(seriesId, 'isfdb', result.raw, series.books.length);
+    
+    // Process sub-series hierarchy if applicable
+    if (series.subSeries && series.subSeries.length > 0) {
+      console.log(`${progress}   🔗 Processing ${series.subSeries.length} sub-series...`);
+      await processSeriesHierarchy(series.sourceId!, { genre: detectedGenre || undefined, verbose: false });
+    } else if (series.parentSeriesId) {
+      await processSeriesHierarchy(series.parentSeriesId, { genre: detectedGenre || undefined, verbose: false });
+    }
     
     const genreLabel = detectedGenre ? ` [${detectedGenre}]` : '';
     console.log(`${progress} ✅ ${series.name} - ${series.books.length} books${genreLabel}`);
@@ -2454,6 +2483,442 @@ async function runBackfillBooks(save = false, limit = 0, genre?: string) {
     console.log('');
     console.log('💡 Run with --save to persist changes');
   }
+  console.log('═'.repeat(60));
+}
+
+// =============================================================================
+// Sub-Series Hierarchy Processing
+// =============================================================================
+
+/**
+ * Process a series that has sub-series on ISFDB.
+ * Given an ISFDB parent/universe page, this function:
+ * 1. Creates (or finds) the parent universe series
+ * 2. Fetches each sub-series from ISFDB
+ * 3. Creates sub-series entries with parent links
+ * 4. Moves books from any flat series to the correct sub-series
+ * 
+ * Returns { created, moved, errors } counts.
+ */
+async function processSeriesHierarchy(
+  parentIsfdbId: string,
+  options: { dryRun?: boolean; genre?: string; verbose?: boolean } = {}
+): Promise<{ parentId: string | null; created: number; moved: number; errors: number }> {
+  const { dryRun = false, genre, verbose = true } = options;
+  
+  // Step 1: Fetch the parent/universe page from ISFDB
+  const parentResult = await fetchSeriesById(parentIsfdbId);
+  if (!parentResult.series) {
+    if (verbose) console.log(`    ❌ Could not fetch parent ISFDB page ${parentIsfdbId}`);
+    return { parentId: null, created: 0, moved: 0, errors: 1 };
+  }
+  
+  const parentSource = parentResult.series;
+  const subSeriesList = parentSource.subSeries || [];
+  
+  if (subSeriesList.length === 0) {
+    if (verbose) console.log(`    ℹ️  No sub-series on parent page ${parentSource.name}`);
+    return { parentId: null, created: 0, moved: 0, errors: 0 };
+  }
+  
+  if (verbose) {
+    console.log(`    📖 Parent: ${parentSource.name} (ISFDB ${parentIsfdbId})`);
+    console.log(`    📚 Sub-series: ${subSeriesList.map(s => s.name).join(', ')}`);
+  }
+  
+  // Step 2: Create/find the parent universe series in our DB
+  let parentRecord = findSeriesByIsfdbId(parentIsfdbId);
+  if (!parentRecord) {
+    parentRecord = findSeriesByName(parentSource.name);
+  }
+  
+  let parentDbId: string;
+  if (parentRecord) {
+    parentDbId = parentRecord.id;
+    // Make sure it has the ISFDB ID
+    if (!parentRecord.isfdb_id && !dryRun) {
+      upsertSeries({
+        id: parentDbId,
+        name: parentRecord.name,
+        isfdb_id: parentIsfdbId,
+      });
+    }
+  } else {
+    // Create the parent universe series (it may have no direct books)
+    if (dryRun) {
+      if (verbose) console.log(`    🆕 Would create parent: ${parentSource.name}`);
+      parentDbId = 'dry-run-parent';
+    } else {
+      parentDbId = upsertSeries({
+        name: parentSource.name,
+        author: parentSource.author,
+        genre: genre || null,
+        total_books: parentSource.books.length,
+        confidence: 0.8,
+        isfdb_id: parentIsfdbId,
+      });
+      // Save parent's direct books (if any)
+      for (const book of parentSource.books) {
+        upsertSeriesBook({
+          series_id: parentDbId,
+          title: book.title,
+          position: book.position,
+          author: book.author,
+          year_published: book.yearPublished,
+          confidence: 0.8,
+        });
+      }
+      storeSourceData(parentDbId, 'isfdb', { seriesId: parentIsfdbId }, parentSource.books.length);
+      if (verbose) console.log(`    🆕 Created parent: ${parentSource.name} (${parentDbId})`);
+    }
+  }
+  
+  let created = 0;
+  let moved = 0;
+  let errors = 0;
+  
+  // Step 3: Process each sub-series
+  for (const subRef of subSeriesList) {
+    try {
+      // Fetch the sub-series page from ISFDB
+      const subResult = await fetchSeriesById(subRef.id);
+      if (!subResult.series) {
+        if (verbose) console.log(`    ⚠️  Could not fetch sub-series: ${subRef.name} (ISFDB ${subRef.id})`);
+        errors++;
+        continue;
+      }
+      
+      const subSource = subResult.series;
+      
+      if (subSource.books.length === 0) {
+        if (verbose) console.log(`    ⏭️  ${subSource.name} — 0 books, skipping`);
+        continue;
+      }
+      
+      // Check if this sub-series already exists
+      let subRecord = findSeriesByIsfdbId(subRef.id);
+      if (!subRecord) {
+        subRecord = findSeriesByName(subSource.name);
+      }
+      
+      if (subRecord) {
+        // Already exists — just ensure parent link is set
+        if (!subRecord.parent_series_id && !dryRun) {
+          setParentSeries(subRecord.id, parentDbId);
+          if (verbose) console.log(`    🔗 Linked existing: ${subRecord.name} → ${parentSource.name}`);
+        }
+        // Ensure it has the ISFDB ID
+        if (!subRecord.isfdb_id && !dryRun) {
+          upsertSeries({
+            id: subRecord.id,
+            name: subRecord.name,
+            isfdb_id: subRef.id,
+          });
+        }
+        continue;
+      }
+      
+      // Sub-series doesn't exist — create it
+      if (dryRun) {
+        if (verbose) console.log(`    🆕 Would create sub-series: ${subSource.name} (${subSource.books.length} books)`);
+        created++;
+        continue;
+      }
+      
+      // Determine genre from parent or auto-detect
+      const subGenre = genre || (parentRecord?.genre) || detectGenre(subSource.tags, subSource.name) || null;
+      
+      const subDbId = upsertSeries({
+        name: subSource.name,
+        author: subSource.author,
+        genre: subGenre,
+        total_books: subSource.books.length,
+        confidence: 0.8,
+        isfdb_id: subRef.id,
+        parent_series_id: parentDbId,
+      });
+      
+      // Save the sub-series books
+      for (const book of subSource.books) {
+        upsertSeriesBook({
+          series_id: subDbId,
+          title: book.title,
+          position: book.position,
+          author: book.author,
+          year_published: book.yearPublished,
+          confidence: 0.8,
+        });
+      }
+      
+      storeSourceData(subDbId, 'isfdb', { seriesId: subRef.id }, subSource.books.length);
+      
+      if (verbose) console.log(`    ✅ Created: ${subSource.name} (${subSource.books.length} books) [${subGenre || 'no genre'}]`);
+      created++;
+      
+      // Step 4: Check if any sibling series has these books mixed in
+      // Only look at known siblings (same parent), NOT the entire database
+      const siblingCandidates = findFlatSiblingsForBooks(subSource, subSeriesList, parentIsfdbId, parentDbId, subRef.id);
+      
+      for (const candidate of siblingCandidates) {
+        for (const book of subSource.books) {
+          const titleNorm = normalizeText(book.title);
+          const wasMoved = moveBookToSeries(
+            candidate.id, subDbId, titleNorm, book.position
+          );
+          if (wasMoved) {
+            moved++;
+            if (verbose) console.log(`      📦 Moved "${book.title}" from ${candidate.name} → ${subSource.name}`);
+          }
+        }
+        // Update book count on the source series after moves
+        refreshSeriesBookCount(candidate.id);
+      }
+      
+    } catch (error) {
+      if (verbose) console.error(`    ❌ Error processing sub-series ${subRef.name}: ${error}`);
+      errors++;
+    }
+  }
+  
+  // Step 5: Link any existing DB series that are children (already have ISFDB IDs matching sub-series)
+  // and set the parent's book count
+  if (!dryRun) {
+    refreshSeriesBookCount(parentDbId);
+  }
+  
+  return { parentId: parentDbId, created, moved, errors };
+}
+
+/**
+ * Find series in our DB that are "flat" siblings — i.e., they are children of
+ * the same parent and may contain books that should belong to a different sub-series.
+ * 
+ * CRITICAL: Only returns series that are known siblings (share the same parent),
+ * NOT random series that happen to have a book with the same title.
+ * 
+ * The main use case: "Awaken Online" in DB has books from "Side Quests" and "Tarot"
+ * because Goodreads merged them. We need to find that flat series to move books out.
+ */
+function findFlatSiblingsForBooks(
+  _subSource: { books: Array<{ title: string }> },
+  allSubSeries: Array<{ id: string; name: string }>,
+  parentIsfdbId: string,
+  parentDbId: string,
+  currentSubIsfdbId: string
+): Array<{ id: string; name: string }> {
+  const db = getDb();
+  
+  const candidates: Array<{ id: string; name: string }> = [];
+  
+  // Strategy: Only look at series that are KNOWN siblings of this sub-series.
+  // A sibling is a series that:
+  // 1. Has the same parent_series_id in our DB, OR
+  // 2. Has an ISFDB ID matching another sub-series of the same parent
+  
+  // Get all sibling ISFDB IDs (excluding the current sub-series)
+  const siblingIsfdbIds = allSubSeries
+    .filter(s => s.id !== currentSubIsfdbId)
+    .map(s => s.id);
+  
+  // Find DB series that are siblings by parent_series_id
+  const byParent = db.prepare(`
+    SELECT id, name FROM series
+    WHERE parent_series_id = ?
+  `).all(parentDbId) as Array<{ id: string; name: string }>;
+  
+  for (const s of byParent) {
+    if (!candidates.find(c => c.id === s.id)) {
+      candidates.push(s);
+    }
+  }
+  
+  // Find DB series that are siblings by ISFDB ID match
+  if (siblingIsfdbIds.length > 0) {
+    const placeholders = siblingIsfdbIds.map(() => '?').join(',');
+    const byIsfdb = db.prepare(`
+      SELECT id, name FROM series
+      WHERE isfdb_id IN (${placeholders})
+    `).all(...siblingIsfdbIds) as Array<{ id: string; name: string }>;
+    
+    for (const s of byIsfdb) {
+      if (!candidates.find(c => c.id === s.id)) {
+        candidates.push(s);
+      }
+    }
+  }
+  
+  // Also include the parent series itself (it might have flat books)
+  const parentSeries = db.prepare('SELECT id, name FROM series WHERE id = ?')
+    .get(parentDbId) as { id: string; name: string } | undefined;
+  if (parentSeries && !candidates.find(c => c.id === parentSeries.id)) {
+    candidates.push(parentSeries);
+  }
+  
+  // Also find the series matched by ISFDB parent ID (the original flat series)
+  const byParentIsfdb = db.prepare(`
+    SELECT id, name FROM series WHERE isfdb_id = ?
+  `).get(parentIsfdbId) as { id: string; name: string } | undefined;
+  if (byParentIsfdb && !candidates.find(c => c.id === byParentIsfdb.id)) {
+    candidates.push(byParentIsfdb);
+  }
+  
+  return candidates;
+}
+
+/**
+ * Reconcile flat series that should have sub-series hierarchy.
+ * 
+ * Strategy:
+ * 1. Find series with ISFDB IDs that are sub-series (have parentSeriesId on ISFDB)
+ * 2. For each, fetch the parent universe page from ISFDB
+ * 3. Check if the parent has other sub-series we don't have yet
+ * 4. Create missing sub-series and move books from any flat series
+ * 
+ * Also checks for series that have "too many books" compared to ISFDB 
+ * (a sign that Goodreads merged multiple sub-series into one).
+ */
+async function runReconcileSubSeries(limit = 0, dryRun = false, filterName?: string) {
+  console.log('🔄 Reconcile Sub-Series');
+  console.log('═'.repeat(60));
+  console.log(dryRun ? '⚠️  DRY RUN — no changes will be saved' : '💾 Will create sub-series and move books');
+  if (filterName) console.log(`🔍 Filtering to series matching: "${filterName}"`);
+  console.log('');
+  
+  const db = getDb();
+  
+  // Strategy 1: Find series where our book count exceeds ISFDB book count
+  // This indicates Goodreads likely merged sub-series books into one series
+  console.log('📋 Phase 1: Finding series with book count mismatches...');
+  
+  let seriesWithIsfdb = db.prepare(`
+    SELECT s.id, s.name, s.isfdb_id, s.genre, s.parent_series_id,
+           COUNT(sb.id) as db_book_count,
+           sd.raw_data
+    FROM series s
+    JOIN series_book sb ON sb.series_id = s.id
+    LEFT JOIN source_data sd ON sd.series_id = s.id AND sd.source = 'isfdb'
+    WHERE s.isfdb_id IS NOT NULL
+    GROUP BY s.id
+    HAVING db_book_count >= 3
+    ORDER BY db_book_count DESC
+  `).all() as Array<{
+    id: string; name: string; isfdb_id: string; genre: string | null;
+    parent_series_id: string | null; db_book_count: number; raw_data: string | null;
+  }>;
+  
+  // Apply name filter if provided
+  if (filterName) {
+    const filterNorm = filterName.toLowerCase();
+    seriesWithIsfdb = seriesWithIsfdb.filter(s => s.name.toLowerCase().includes(filterNorm));
+    console.log(`  Filtered to ${seriesWithIsfdb.length} series matching "${filterName}"`);
+  } else {
+    console.log(`  Found ${seriesWithIsfdb.length} series with ISFDB IDs and 3+ books`);
+  }
+  
+  // Collect parent ISFDB IDs we need to process
+  const parentsToProcess = new Map<string, { triggerSeries: string; genre: string | null }>();
+  let scanned = 0;
+  let needsReconcile = 0;
+  
+  const toScan = limit > 0 ? seriesWithIsfdb.slice(0, limit) : seriesWithIsfdb;
+  
+  for (const series of toScan) {
+    scanned++;
+    
+    if (scanned % 100 === 0) {
+      console.log(`  ... scanned ${scanned}/${toScan.length}`);
+    }
+    
+    // Fetch the ISFDB page to check if this series has a parent
+    try {
+      const result = await fetchSeriesById(series.isfdb_id);
+      
+      if (!result.series) continue;
+      
+      // If this series has a parent on ISFDB, we need to check the parent for siblings
+      if (result.series.parentSeriesId) {
+        if (!parentsToProcess.has(result.series.parentSeriesId)) {
+          parentsToProcess.set(result.series.parentSeriesId, {
+            triggerSeries: series.name,
+            genre: series.genre,
+          });
+        }
+      }
+      
+      // Also check if this series itself IS a parent with sub-series we don't have
+      if (result.series.subSeries && result.series.subSeries.length > 0) {
+        // Check how many sub-series we're missing
+        let missingSubs = 0;
+        for (const sub of result.series.subSeries) {
+          const existing = findSeriesByIsfdbId(sub.id);
+          if (!existing) missingSubs++;
+        }
+        if (missingSubs > 0) {
+          if (!parentsToProcess.has(series.isfdb_id)) {
+            parentsToProcess.set(series.isfdb_id, {
+              triggerSeries: series.name,
+              genre: series.genre,
+            });
+          }
+        }
+      }
+      
+      // Check for book count mismatch (sign of flattened sub-series)
+      const isfdbBookCount = result.series.books.length;
+      if (series.db_book_count > isfdbBookCount + 2 && result.series.parentSeriesId) {
+        // We have way more books than ISFDB says — likely merged sub-series
+        needsReconcile++;
+        console.log(`  ⚠️  ${series.name}: DB has ${series.db_book_count} books, ISFDB has ${isfdbBookCount} → checking parent`);
+      }
+      
+    } catch (error) {
+      // Rate limits, network errors — skip
+      continue;
+    }
+  }
+  
+  console.log('');
+  console.log(`📋 Phase 2: Processing ${parentsToProcess.size} parent universe pages...`);
+  console.log(`  (${needsReconcile} series flagged with book count mismatches)`);
+  console.log('');
+  
+  let totalCreated = 0;
+  let totalMoved = 0;
+  let totalErrors = 0;
+  let processed = 0;
+  
+  for (const [parentIsfdbId, info] of parentsToProcess) {
+    processed++;
+    console.log(`  [${processed}/${parentsToProcess.size}] Processing parent ISFDB ${parentIsfdbId} (triggered by: ${info.triggerSeries})`);
+    
+    const result = await processSeriesHierarchy(parentIsfdbId, {
+      dryRun,
+      genre: info.genre || undefined,
+      verbose: true,
+    });
+    
+    totalCreated += result.created;
+    totalMoved += result.moved;
+    totalErrors += result.errors;
+  }
+  
+  console.log('');
+  console.log('═'.repeat(60));
+  console.log('📊 Reconcile Sub-Series Summary');
+  console.log('═'.repeat(60));
+  console.log(`  Series scanned:        ${scanned}`);
+  console.log(`  Parent pages checked:  ${parentsToProcess.size}`);
+  console.log(`  Sub-series created:    ${totalCreated}`);
+  console.log(`  Books moved:           ${totalMoved}`);
+  console.log(`  Errors:                ${totalErrors}`);
+  
+  if (dryRun && (totalCreated > 0 || totalMoved > 0)) {
+    console.log('');
+    console.log('💡 Run without --dry-run to persist changes');
+  }
+  
+  const stats = getStats();
+  console.log(`\n📈 Database: ${stats.totalSeries} series, ${stats.totalBooks} books`);
   console.log('═'.repeat(60));
 }
 

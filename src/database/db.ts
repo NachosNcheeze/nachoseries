@@ -80,6 +80,54 @@ function runMigrations(db: Database.Database): void {
     db.exec('CREATE INDEX IF NOT EXISTS idx_series_parent ON series(parent_series_id)');
     console.log('[NachoSeries] Migration complete: parent_series_id added');
   }
+
+  // Migration: Add unique constraint on series_book(series_id, title_normalized)
+  // Also cleans up any existing duplicate rows first
+  const hasUniqueIndex = (db.prepare(
+    "SELECT COUNT(*) as cnt FROM sqlite_master WHERE type='index' AND name='idx_series_book_unique_title'"
+  ).get() as { cnt: number }).cnt > 0;
+
+  if (!hasUniqueIndex) {
+    console.log('[NachoSeries] Running migration: dedup series_book + add unique constraint');
+
+    // Count duplicates before cleanup
+    const dupeCount = (db.prepare(`
+      SELECT COUNT(*) as cnt FROM (
+        SELECT series_id, title_normalized, COUNT(*) as c
+        FROM series_book GROUP BY series_id, title_normalized HAVING c > 1
+      )
+    `).get() as { cnt: number }).cnt;
+    console.log(`[NachoSeries]   Found ${dupeCount} titles with duplicate rows`);
+
+    // Delete duplicates: keep the row with the most data (prefer one with year_published, position, etc)
+    // For each (series_id, title_normalized) group, keep the row with the best data
+    db.exec(`
+      DELETE FROM series_book
+      WHERE id NOT IN (
+        SELECT id FROM (
+          SELECT id,
+            ROW_NUMBER() OVER (
+              PARTITION BY series_id, title_normalized
+              ORDER BY
+                CASE WHEN year_published IS NOT NULL THEN 0 ELSE 1 END,
+                CASE WHEN position IS NOT NULL THEN 0 ELSE 1 END,
+                CASE WHEN openlibrary_key IS NOT NULL THEN 0 ELSE 1 END,
+                CASE WHEN isbn IS NOT NULL THEN 0 ELSE 1 END,
+                confidence DESC,
+                created_at ASC
+            ) as rn
+          FROM series_book
+        ) WHERE rn = 1
+      )
+    `);
+
+    const remaining = (db.prepare('SELECT COUNT(*) as cnt FROM series_book').get() as { cnt: number }).cnt;
+    console.log(`[NachoSeries]   Dedup complete — ${remaining} books remaining`);
+
+    // Now add the unique index to prevent future duplicates
+    db.exec('CREATE UNIQUE INDEX idx_series_book_unique_title ON series_book(series_id, title_normalized)');
+    console.log('[NachoSeries] Migration complete: unique constraint added to series_book');
+  }
 }
 
 /**
@@ -307,10 +355,9 @@ export function upsertSeriesBook(book: Partial<SeriesBookRecord> & { series_id: 
     ) VALUES (
       ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
     )
-    ON CONFLICT(id) DO UPDATE SET
+    ON CONFLICT(series_id, title_normalized) DO UPDATE SET
       position = COALESCE(excluded.position, position),
       title = excluded.title,
-      title_normalized = excluded.title_normalized,
       author = COALESCE(excluded.author, author),
       year_published = COALESCE(excluded.year_published, year_published),
       ebook_known = MAX(ebook_known, excluded.ebook_known),
@@ -825,6 +872,71 @@ export function getParentSeriesList(limit = 100): Array<SeriesRecord & { childCo
   `);
   
   return stmt.all(limit) as Array<SeriesRecord & { childCount: number }>;
+}
+
+/**
+ * Move a book from one series to another by title match.
+ * Deletes the book from the source series and upserts it into the target.
+ */
+export function moveBookToSeries(
+  sourceSeriesId: string,
+  targetSeriesId: string,
+  titleNormalized: string,
+  newPosition?: number | null
+): boolean {
+  const db = getDb();
+  
+  // Find the book in the source series
+  const book = db.prepare(
+    'SELECT * FROM series_book WHERE series_id = ? AND title_normalized = ?'
+  ).get(sourceSeriesId, titleNormalized) as SeriesBookRecord | undefined;
+  
+  if (!book) return false;
+  
+  // Delete from source
+  db.prepare(
+    'DELETE FROM series_book WHERE series_id = ? AND title_normalized = ?'
+  ).run(sourceSeriesId, titleNormalized);
+  
+  // Upsert into target (with new position if provided)
+  upsertSeriesBook({
+    series_id: targetSeriesId,
+    title: book.title,
+    author: book.author || undefined,
+    position: newPosition !== undefined ? newPosition : book.position,
+    year_published: book.year_published || undefined,
+    isbn: book.isbn || undefined,
+    openlibrary_key: book.openlibrary_key || undefined,
+    librarything_id: book.librarything_id || undefined,
+    audible_asin: book.audible_asin || undefined,
+    confidence: book.confidence,
+  });
+  
+  return true;
+}
+
+/**
+ * Delete a book from a series by title
+ */
+export function deleteSeriesBook(seriesId: string, titleNormalized: string): boolean {
+  const db = getDb();
+  const result = db.prepare(
+    'DELETE FROM series_book WHERE series_id = ? AND title_normalized = ?'
+  ).run(seriesId, titleNormalized);
+  return result.changes > 0;
+}
+
+/**
+ * Update the total_books count for a series based on actual book records
+ */
+export function refreshSeriesBookCount(seriesId: string): void {
+  const db = getDb();
+  db.prepare(`
+    UPDATE series SET 
+      total_books = (SELECT COUNT(*) FROM series_book WHERE series_id = ?),
+      updated_at = datetime('now')
+    WHERE id = ?
+  `).run(seriesId, seriesId);
 }
 
 // =============================================================================
