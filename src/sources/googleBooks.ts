@@ -171,12 +171,24 @@ export async function searchBook(
         score += 3;
       }
       
-      // Author match
+      // Author match — if author was provided, reject mismatches
       if (author && vi.authors) {
         const normalizedAuthor = author.toLowerCase();
-        if (vi.authors.some(a => a.toLowerCase().includes(normalizedAuthor) || normalizedAuthor.includes(a.toLowerCase()))) {
+        const authorLastName = normalizedAuthor.split(/\s+/).pop() || normalizedAuthor;
+        const authorMatches = vi.authors.some(a => {
+          const la = a.toLowerCase();
+          const laLast = la.split(/\s+/).pop() || la;
+          return la.includes(normalizedAuthor) || normalizedAuthor.includes(la) || laLast === authorLastName;
+        });
+        if (authorMatches) {
           score += 4;
+        } else {
+          // Wrong author — skip this result entirely
+          continue;
         }
+      } else if (author && !vi.authors) {
+        // Author requested but book has no author info — skip
+        continue;
       }
       
       if (score > bestScore) {

@@ -20,7 +20,10 @@ import {
   findSeriesForBook,
   findSeriesByBookTitle,
   saveSourceSeries,
-  checkDatabaseHealth
+  checkDatabaseHealth,
+  unifiedSearch,
+  lookupBookDescription,
+  getDescriptionStats,
 } from './database/db.js';
 import { fetchSeries as fetchGoodreadsSeries } from './sources/goodreads.js';
 
@@ -96,6 +99,25 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
       
       const results = dbSearchSeries(query, limit);
       sendJSON(res, { results, count: results.length });
+      return;
+    }
+
+    // Unified search: series names + book titles
+    if (path === '/api/search') {
+      const query = url.searchParams.get('q');
+      const limit = parseInt(url.searchParams.get('limit') || '20');
+      
+      if (!query) {
+        sendError(res, 'Missing query parameter: q');
+        return;
+      }
+      
+      const results = unifiedSearch(query, limit);
+      sendJSON(res, {
+        seriesMatches: results.seriesMatches,
+        bookMatches: results.bookMatches,
+        totalMatches: results.seriesMatches.length + results.bookMatches.length,
+      });
       return;
     }
 
@@ -200,6 +222,38 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
       return;
     }
 
+    // Look up a book description by title+author
+    if (path === '/api/books/description') {
+      const title = url.searchParams.get('title');
+      const author = url.searchParams.get('author') || undefined;
+      
+      if (!title) {
+        sendError(res, 'Missing query parameter: title');
+        return;
+      }
+      
+      const result = lookupBookDescription(title, author);
+      if (!result) {
+        sendJSON(res, { found: false, description: null });
+        return;
+      }
+      
+      sendJSON(res, { 
+        found: true, 
+        description: result.description,
+        bookTitle: result.bookTitle,
+        seriesName: result.seriesName,
+      });
+      return;
+    }
+
+    // Description enrichment stats
+    if (path === '/api/books/description-stats') {
+      const stats = getDescriptionStats();
+      sendJSON(res, stats);
+      return;
+    }
+
     // Get series by ID
     if (path.startsWith('/api/series/')) {
       const id = path.replace('/api/series/', '');
@@ -290,14 +344,17 @@ export function startServer(): void {
     console.log('╚════════════════════════════════════════════════════════════════╝');
     console.log('');
     console.log('Endpoints:');
-    console.log('  GET /api/health         - Health check');
-    console.log('  GET /api/stats          - Database statistics');
-    console.log('  GET /api/lookup         - On-demand lookup (DB + Goodreads fallback)');
-    console.log('  GET /api/series         - List all series (paginated)');
-    console.log('  GET /api/series/search  - Search series by name');
-    console.log('  GET /api/series/byName  - Get series by exact name');
-    console.log('  GET /api/series/for-book - Find series for a book title');
-    console.log('  GET /api/series/:id     - Get series by ID (includes children & parent)');
+    console.log('  GET /api/health              - Health check');
+    console.log('  GET /api/stats               - Database statistics');
+    console.log('  GET /api/lookup              - On-demand lookup (DB + Goodreads fallback)');
+    console.log('  GET /api/series              - List all series (paginated)');
+    console.log('  GET /api/search              - Unified search (series names + book titles)');
+    console.log('  GET /api/series/search       - Search series by name');
+    console.log('  GET /api/series/byName       - Get series by exact name');
+    console.log('  GET /api/series/for-book     - Find series for a book title');
+    console.log('  GET /api/series/:id          - Get series by ID (includes children & parent)');
+    console.log('  GET /api/books/description   - Look up book description by title+author');
+    console.log('  GET /api/books/description-stats - Description enrichment statistics');
     console.log('');
   });
 

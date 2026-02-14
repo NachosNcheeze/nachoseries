@@ -128,6 +128,16 @@ function runMigrations(db: Database.Database): void {
     db.exec('CREATE UNIQUE INDEX idx_series_book_unique_title ON series_book(series_id, title_normalized)');
     console.log('[NachoSeries] Migration complete: unique constraint added to series_book');
   }
+
+  // Migration: Add description column to series_book table
+  const bookColumns = db.prepare("PRAGMA table_info(series_book)").all() as Array<{ name: string }>;
+  const hasBookDescription = bookColumns.some(c => c.name === 'description');
+  
+  if (!hasBookDescription) {
+    console.log('[NachoSeries] Running migration: adding description column to series_book');
+    db.exec('ALTER TABLE series_book ADD COLUMN description TEXT');
+    console.log('[NachoSeries] Migration complete: description column added to series_book');
+  }
 }
 
 /**
@@ -194,6 +204,7 @@ export interface SeriesBookRecord {
   year_published: number | null;
   ebook_known: boolean;
   audiobook_known: boolean;
+  description: string | null;
   openlibrary_key: string | null;
   librarything_id: string | null;
   audible_asin: string | null;
@@ -351,9 +362,9 @@ export function upsertSeriesBook(book: Partial<SeriesBookRecord> & { series_id: 
     INSERT INTO series_book (
       id, series_id, position, title, title_normalized, author,
       year_published, ebook_known, audiobook_known,
-      openlibrary_key, librarything_id, audible_asin, isbn, confidence
+      description, openlibrary_key, librarything_id, audible_asin, isbn, confidence
     ) VALUES (
-      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
     )
     ON CONFLICT(series_id, title_normalized) DO UPDATE SET
       position = COALESCE(excluded.position, position),
@@ -362,6 +373,7 @@ export function upsertSeriesBook(book: Partial<SeriesBookRecord> & { series_id: 
       year_published = COALESCE(excluded.year_published, year_published),
       ebook_known = MAX(ebook_known, excluded.ebook_known),
       audiobook_known = MAX(audiobook_known, excluded.audiobook_known),
+      description = COALESCE(excluded.description, description),
       openlibrary_key = COALESCE(excluded.openlibrary_key, openlibrary_key),
       librarything_id = COALESCE(excluded.librarything_id, librarything_id),
       audible_asin = COALESCE(excluded.audible_asin, audible_asin),
@@ -380,6 +392,7 @@ export function upsertSeriesBook(book: Partial<SeriesBookRecord> & { series_id: 
     book.year_published || null,
     book.ebook_known ? 1 : 0,
     book.audiobook_known ? 1 : 0,
+    book.description || null,
     book.openlibrary_key || null,
     book.librarything_id || null,
     book.audible_asin || null,
@@ -491,6 +504,94 @@ export function searchSeries(query: string, limit = 20): SeriesRecord[] {
   `);
   
   return stmt.all(normalizedQuery, limit) as SeriesRecord[];
+}
+
+/**
+ * Unified search: searches both series names and book titles
+ * Returns matching series (with children info) and book-title matches
+ */
+export function unifiedSearch(query: string, limit = 20): {
+  seriesMatches: Array<SeriesRecord & { matchType: 'name'; children?: SeriesRecord[] }>;
+  bookMatches: Array<{ book: Pick<SeriesBookRecord, 'id' | 'series_id' | 'title' | 'title_normalized' | 'author' | 'position'>; series: SeriesRecord; matchType: 'book_title' }>;
+} {
+  const db = getDb();
+  const normalizedQuery = normalizeText(query);
+  const likeQuery = `%${normalizedQuery}%`;
+
+  // 1. Search series by name
+  const seriesStmt = db.prepare(`
+    SELECT * FROM series 
+    WHERE name_normalized LIKE ?
+    ORDER BY 
+      CASE WHEN name_normalized = ? THEN 0 
+           WHEN name_normalized LIKE ? THEN 1 
+           ELSE 2 END,
+      confidence DESC, total_books DESC
+    LIMIT ?
+  `);
+  const seriesRows = seriesStmt.all(likeQuery, normalizedQuery, `${normalizedQuery}%`, limit) as SeriesRecord[];
+
+  // Enrich series matches with children
+  const seriesMatches = seriesRows.map(s => {
+    const children = getChildSeries(s.id);
+    return { ...s, matchType: 'name' as const, children: children.length > 0 ? children : undefined };
+  });
+
+  // 2. Search book titles — exclude books whose series already matched above
+  const matchedSeriesIds = new Set(seriesRows.map(s => s.id));
+  // Also exclude children of matched parent series
+  for (const s of seriesRows) {
+    const children = getChildSeries(s.id);
+    for (const c of children) matchedSeriesIds.add(c.id);
+  }
+
+  const bookStmt = db.prepare(`
+    SELECT 
+      b.id, b.series_id, b.title, b.title_normalized, b.author, b.position,
+      s.*
+    FROM series_book b
+    JOIN series s ON b.series_id = s.id
+    WHERE b.title_normalized LIKE ?
+    ORDER BY 
+      CASE WHEN b.title_normalized = ? THEN 0
+           WHEN b.title_normalized LIKE ? THEN 1
+           ELSE 2 END,
+      s.confidence DESC
+    LIMIT ?
+  `);
+  const bookRows = bookStmt.all(likeQuery, normalizedQuery, `${normalizedQuery}%`, limit * 2) as any[];
+
+  const bookMatches: Array<{ book: Pick<SeriesBookRecord, 'id' | 'series_id' | 'title' | 'title_normalized' | 'author' | 'position'>; series: SeriesRecord; matchType: 'book_title' }> = [];
+  const seenBookKeys = new Set<string>();
+
+  for (const row of bookRows) {
+    // Skip if this book's series was already returned as a series match
+    if (matchedSeriesIds.has(row.series_id)) continue;
+
+    // Deduplicate by title+series
+    const key = `${row.series_id}:${row.title_normalized}`;
+    if (seenBookKeys.has(key)) continue;
+    seenBookKeys.add(key);
+
+    const book = {
+      id: row.id as string,
+      series_id: row.series_id as string,
+      title: row.title as string,
+      title_normalized: row.title_normalized as string,
+      author: row.author as string | null,
+      position: row.position as number | null,
+    };
+
+    // The s.* columns overlap with b columns — SQLite gives s.id last, so extract by known names
+    // Re-query the series to get clean data
+    const seriesData = db.prepare('SELECT * FROM series WHERE id = ?').get(row.series_id) as SeriesRecord;
+    if (!seriesData) continue;
+
+    bookMatches.push({ book, series: seriesData, matchType: 'book_title' });
+    if (bookMatches.length >= limit) break;
+  }
+
+  return { seriesMatches, bookMatches };
 }
 
 /**
@@ -816,6 +917,7 @@ export function getSeriesWithChildren(seriesId: number | string): {
   books: SeriesBookRecord[];
   children: Array<SeriesRecord & { bookCount: number }>;
   parent: SeriesRecord | null;
+  siblings: Array<SeriesRecord & { bookCount: number }>;
 } | null {
   const db = getDb();
   
@@ -842,7 +944,21 @@ export function getSeriesWithChildren(seriesId: number | string): {
     db.prepare('SELECT * FROM series WHERE id = ?').get(series.parent_series_id) as SeriesRecord | undefined
   ) || null : null;
   
-  return { series, books, children, parent };
+  // Get siblings (other children of the same parent, excluding self)
+  let siblings: Array<SeriesRecord & { bookCount: number }> = [];
+  if (series.parent_series_id) {
+    const siblingStmt = db.prepare(`
+      SELECT s.*, COUNT(sb.id) as bookCount
+      FROM series s
+      LEFT JOIN series_book sb ON sb.series_id = s.id
+      WHERE s.parent_series_id = ? AND s.id != ?
+      GROUP BY s.id
+      ORDER BY s.name ASC
+    `);
+    siblings = siblingStmt.all(series.parent_series_id, series.id) as Array<SeriesRecord & { bookCount: number }>;
+  }
+  
+  return { series, books, children, parent, siblings };
 }
 
 /**
@@ -937,6 +1053,186 @@ export function refreshSeriesBookCount(seriesId: string): void {
       updated_at = datetime('now')
     WHERE id = ?
   `).run(seriesId, seriesId);
+}
+
+// =============================================================================
+// Parent-Child Deduplication
+// =============================================================================
+
+/**
+ * Remove books from a parent series that also exist in any of its child sub-series.
+ * Returns the number of books removed.
+ */
+export function dedupParentBooks(parentSeriesId: string, dryRun = false): { removed: number; titles: string[] } {
+  const db = getDb();
+  
+  // Find all books in the parent that also exist (by title) in any child series
+  const dupes = db.prepare(`
+    SELECT DISTINCT pb.id, pb.title, pb.title_normalized, c.name as child_name
+    FROM series_book pb
+    JOIN series c ON c.parent_series_id = ?
+    JOIN series_book cb ON cb.series_id = c.id AND cb.title = pb.title
+    WHERE pb.series_id = ?
+  `).all(parentSeriesId, parentSeriesId) as Array<{ id: string; title: string; title_normalized: string; child_name: string }>;
+  
+  if (dupes.length === 0) {
+    return { removed: 0, titles: [] };
+  }
+  
+  const titles = [...new Set(dupes.map(d => d.title))];
+  
+  if (!dryRun) {
+    // Delete the duplicate books from the parent
+    const deleteStmt = db.prepare('DELETE FROM series_book WHERE id = ?');
+    for (const dupe of dupes) {
+      deleteStmt.run(dupe.id);
+    }
+    // Update the parent's book count
+    refreshSeriesBookCount(parentSeriesId);
+  }
+  
+  return { removed: titles.length, titles };
+}
+
+/**
+ * Find all parent series that have books duplicated in their children.
+ * Returns summary info for each affected parent.
+ */
+export function findParentsWithDuplicateBooks(): Array<{
+  id: string;
+  name: string;
+  totalBooks: number;
+  duplicateCount: number;
+  childCount: number;
+}> {
+  const db = getDb();
+  
+  return db.prepare(`
+    SELECT p.id, p.name, p.total_books as totalBooks,
+           COUNT(DISTINCT pb.title) as duplicateCount,
+           COUNT(DISTINCT c.id) as childCount
+    FROM series p
+    JOIN series c ON c.parent_series_id = p.id
+    JOIN series_book pb ON pb.series_id = p.id
+    JOIN series_book cb ON cb.series_id = c.id AND cb.title = pb.title
+    GROUP BY p.id
+    ORDER BY duplicateCount DESC
+  `).all() as Array<{ id: string; name: string; totalBooks: number; duplicateCount: number; childCount: number }>;
+}
+
+// =============================================================================
+// Book Description Operations
+// =============================================================================
+
+/**
+ * Update a book's description by its ID
+ */
+export function updateBookDescription(bookId: string, description: string): void {
+  const db = getDb();
+  db.prepare(`
+    UPDATE series_book SET description = ?, updated_at = datetime('now')
+    WHERE id = ?
+  `).run(description, bookId);
+}
+
+/**
+ * Get books needing descriptions (no description yet), with their series info
+ * Returns books ordered by series confidence (enrich popular series first)
+ */
+export function getBooksNeedingDescriptions(
+  limit = 100,
+  genre?: string
+): Array<{ id: string; title: string; author: string | null; series_id: string; series_name: string; series_author: string | null }> {
+  const db = getDb();
+  
+  let sql = `
+    SELECT b.id, b.title, b.author, b.series_id, 
+           s.name as series_name, s.author as series_author
+    FROM series_book b
+    JOIN series s ON b.series_id = s.id
+    WHERE (b.description IS NULL OR b.description = '')
+  `;
+  const params: (string | number)[] = [];
+  
+  if (genre) {
+    sql += ' AND s.genre = ?';
+    params.push(genre);
+  }
+  
+  sql += ' ORDER BY s.confidence DESC, s.total_books DESC, b.position ASC LIMIT ?';
+  params.push(limit);
+  
+  return db.prepare(sql).all(...params) as Array<{
+    id: string; title: string; author: string | null;
+    series_id: string; series_name: string; series_author: string | null;
+  }>;
+}
+
+/**
+ * Look up a book description from the database by title and optional author
+ * Returns the description if found, null otherwise
+ */
+export function lookupBookDescription(title: string, author?: string): {
+  description: string;
+  bookTitle: string;
+  seriesName: string;
+} | null {
+  const db = getDb();
+  const normalizedTitle = normalizeText(title);
+  const normalizedAuthor = author ? normalizeText(author) : null;
+  
+  // Try exact title match first
+  let stmt = db.prepare(`
+    SELECT b.description, b.title as bookTitle, s.name as seriesName
+    FROM series_book b
+    JOIN series s ON b.series_id = s.id
+    WHERE b.title_normalized = ?
+      AND b.description IS NOT NULL AND b.description != ''
+      ${normalizedAuthor ? "AND (b.author IS NOT NULL AND LOWER(b.author) LIKE ?)" : ''}
+    ORDER BY s.confidence DESC
+    LIMIT 1
+  `);
+  
+  const params: string[] = [normalizedTitle];
+  if (normalizedAuthor) params.push(`%${normalizedAuthor}%`);
+  
+  let row = stmt.get(...params) as { description: string; bookTitle: string; seriesName: string } | undefined;
+  
+  // If no match with author filter, try without (still exact title)
+  if (!row && normalizedAuthor) {
+    stmt = db.prepare(`
+      SELECT b.description, b.title as bookTitle, s.name as seriesName
+      FROM series_book b
+      JOIN series s ON b.series_id = s.id
+      WHERE b.title_normalized = ?
+        AND b.description IS NOT NULL AND b.description != ''
+      ORDER BY s.confidence DESC
+      LIMIT 1
+    `);
+    row = stmt.get(normalizedTitle) as { description: string; bookTitle: string; seriesName: string } | undefined;
+  }
+  
+  return row || null;
+}
+
+/**
+ * Get description enrichment stats
+ */
+export function getDescriptionStats(): {
+  totalBooks: number;
+  withDescription: number;
+  withoutDescription: number;
+  percentage: number;
+} {
+  const db = getDb();
+  const total = (db.prepare('SELECT COUNT(*) as c FROM series_book').get() as { c: number }).c;
+  const withDesc = (db.prepare("SELECT COUNT(*) as c FROM series_book WHERE description IS NOT NULL AND description != ''").get() as { c: number }).c;
+  return {
+    totalBooks: total,
+    withDescription: withDesc,
+    withoutDescription: total - withDesc,
+    percentage: total > 0 ? Math.round((withDesc / total) * 1000) / 10 : 0,
+  };
 }
 
 // =============================================================================

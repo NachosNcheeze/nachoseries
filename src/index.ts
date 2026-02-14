@@ -3,7 +3,7 @@
  * Aggregates and reconciles book series data from multiple sources
  */
 
-import { initDatabase, getStats, closeDatabase, upsertSeries, upsertSeriesBook, findSeriesByName, getSeriesNeedingVerification, storeSourceData, getDb, updateSeriesGenre, saveSourceSeries, findSeriesByIsfdbId, setParentSeries, getChildSeries, getParentSeriesList, moveBookToSeries, deleteSeriesBook, refreshSeriesBookCount, normalizeText, getBooksInSeries, type SeriesRecord } from './database/db.js';
+import { initDatabase, getStats, closeDatabase, upsertSeries, upsertSeriesBook, findSeriesByName, getSeriesNeedingVerification, storeSourceData, getDb, updateSeriesGenre, saveSourceSeries, findSeriesByIsfdbId, setParentSeries, getChildSeries, getParentSeriesList, moveBookToSeries, deleteSeriesBook, refreshSeriesBookCount, normalizeText, getBooksInSeries, updateBookDescription, getBooksNeedingDescriptions, getDescriptionStats, dedupParentBooks, findParentsWithDuplicateBooks, type SeriesRecord } from './database/db.js';
 import { fetchSeries as fetchLibraryThing } from './sources/librarything.js';
 import { fetchSeries as fetchOpenLibrary } from './sources/openLibrary.js';
 import { fetchSeries as fetchISFDB, browseSeriesByGenre, fetchSeriesById, genreKeywords, discoverSeriesFromAuthors, scanSeriesRange, fetchPopularAuthors, fetchAuthorSeries, mapTagsToGenre, detectGenre, guessGenreFromName } from './sources/isfdb.js';
@@ -184,6 +184,25 @@ async function main() {
       break;
     }
 
+    case 'dedup-parents': {
+      // Remove books from parent series that are duplicated in child sub-series
+      // Usage: dedup-parents [--dry-run] [--series=NAME]
+      const dpDryRun = args.includes('--dry-run');
+      const dpSeries = args.find(a => a.startsWith('--series='))?.split('=').slice(1).join('=');
+      runDedupParents(dpDryRun, dpSeries);
+      break;
+    }
+
+    case 'enrich-books': {
+      // Enrich individual books with descriptions from Google Books
+      // Usage: enrich-books [--limit=N] [--genre=GENRE] [--dry-run]
+      const ebLimit = parseInt(args.find(a => a.startsWith('--limit='))?.split('=')[1] || '500');
+      const ebGenre = args.find(a => a.startsWith('--genre='))?.split('=')[1];
+      const ebDryRun = args.includes('--dry-run');
+      await runEnrichBookDescriptions(ebLimit, ebGenre, ebDryRun);
+      break;
+    }
+
     case 'save':
       await saveSeriesFromTest(args[1]);
       break;
@@ -215,11 +234,13 @@ async function main() {
       console.log('  import-seeds      Import from seed text files via Goodreads (--save)');
       console.log('  import-shelves    Import from Goodreads genre shelves (--save)');
       console.log('  enrich            Enrich series with Google Books data (descriptions, ISBNs)');
+      console.log('  enrich-books      Enrich individual book descriptions from Google Books');
       console.log('  discover-all      Automated full scan: seeds → shelves → enrichment');
       console.log('  cleanup           Remove non-English series (--confirm to execute)');
       console.log('  backfill          Backfill books for series with 0 book records');
       console.log('  link-subseries    Link sub-series to parents by re-parsing ISFDB pages');
       console.log('  reconcile-subseries  Find flat series needing sub-series split & fix them');
+      console.log('  dedup-parents     Remove books from parents that are duplicated in children');
       console.log('  daily             Run automated daily job (discover + tag)');
       console.log('');
       console.log('Options:');
@@ -229,6 +250,7 @@ async function main() {
       console.log('  --pages=N         Max pages per shelf to scrape (import-shelves)');
       console.log('  --descriptions    Enrich with descriptions (enrich command)');
       console.log('  --isbns           Enrich with ISBNs (enrich command)');
+      console.log('  --dry-run         Preview what would be changed (enrich-books, reconcile-subseries)');
       console.log('  --confirm         Execute cleanup (otherwise dry-run)');
       console.log('  --skip-seeds      Skip seed file imports (discover-all)');
       console.log('  --skip-shelves    Skip shelf scraping (discover-all)');
@@ -1826,6 +1848,119 @@ async function runGoogleBooksEnrich(limit = 100, genre?: string, doDescriptions 
 }
 
 // =============================================================================
+// Book-Level Description Enrichment (enrich-books)
+// =============================================================================
+
+/**
+ * Enrich individual book records with descriptions from Google Books.
+ * Unlike the series-level 'enrich' command, this stores descriptions
+ * on each series_book row so NachoReads can serve them instantly.
+ */
+async function runEnrichBookDescriptions(limit = 500, genre?: string, dryRun = false) {
+  console.log('📖 Book Description Enrichment');
+  console.log('─'.repeat(60));
+  
+  // Show current stats
+  const statsBefore = getDescriptionStats();
+  console.log(`📊 Current: ${statsBefore.withDescription}/${statsBefore.totalBooks} books have descriptions (${statsBefore.percentage}%)`);
+  console.log(`📝 To enrich: up to ${limit} books`);
+  if (genre) console.log(`🏷️  Genre filter: ${genre}`);
+  if (dryRun) console.log('🔍 DRY RUN — no changes will be saved');
+  console.log('─'.repeat(60));
+  console.log('');
+  
+  // Get books needing descriptions
+  const books = getBooksNeedingDescriptions(limit, genre);
+  
+  if (books.length === 0) {
+    console.log('✅ All books already have descriptions!');
+    return;
+  }
+  
+  console.log(`Found ${books.length} books needing descriptions\n`);
+  
+  let enriched = 0;
+  let noResults = 0;
+  let errors = 0;
+  let rateLimitHits = 0;
+  
+  // Track by series for cleaner output
+  let currentSeriesId = '';
+  
+  for (let i = 0; i < books.length; i++) {
+    const book = books[i];
+    const progress = `[${i + 1}/${books.length}]`;
+    
+    // Log series header when series changes
+    if (book.series_id !== currentSeriesId) {
+      currentSeriesId = book.series_id;
+      console.log(`\n📚 ${book.series_name}${book.series_author ? ` — ${book.series_author}` : ''}`);
+    }
+    
+    try {
+      // Use the book's own author, fall back to series author
+      const author = book.author || book.series_author || undefined;
+      const enrichment = await searchBook(book.title, author);
+      
+      if (enrichment?.description && enrichment.description.length > 30) {
+        // Validate: make sure the description isn't obviously for a different book
+        // Simple check: if we searched with author and got a result, trust it
+        // (Google Books scoring in searchBook already handles title/author matching)
+        
+        if (!dryRun) {
+          updateBookDescription(book.id, enrichment.description);
+        }
+        
+        const truncated = enrichment.description.length > 80 
+          ? enrichment.description.substring(0, 77) + '...' 
+          : enrichment.description;
+        console.log(`  ${progress} ✅ ${book.title} (${enrichment.description.length} chars) — ${truncated}`);
+        enriched++;
+      } else {
+        console.log(`  ${progress} ⏭️  ${book.title} — no description found`);
+        noResults++;
+      }
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      if (msg.includes('429')) {
+        rateLimitHits++;
+        console.log(`  ${progress} ⏳ Rate limited, waiting 15s...`);
+        await new Promise(resolve => setTimeout(resolve, 15000));
+        i--; // Retry this book
+        continue;
+      }
+      console.log(`  ${progress} ❌ ${book.title}: ${msg}`);
+      errors++;
+    }
+    
+    // Extra safety: if we hit 3 consecutive rate limits, slow down permanently
+    if (rateLimitHits >= 3) {
+      console.log('\n⚠️  Multiple rate limits hit. Slowing to 1 req/sec...');
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      rateLimitHits = 0;
+    }
+  }
+  
+  // Final stats
+  const statsAfter = dryRun ? statsBefore : getDescriptionStats();
+  
+  console.log('');
+  console.log('─'.repeat(60));
+  console.log('📊 Book Description Enrichment Summary');
+  console.log('─'.repeat(60));
+  console.log(`  Processed: ${books.length} books`);
+  console.log(`  Enriched:  ${enriched} books got descriptions`);
+  console.log(`  No result: ${noResults}`);
+  console.log(`  Errors:    ${errors}`);
+  if (dryRun) {
+    console.log(`  ⚠️  DRY RUN — no changes saved`);
+  } else {
+    console.log(`  Before:    ${statsBefore.withDescription}/${statsBefore.totalBooks} (${statsBefore.percentage}%)`);
+    console.log(`  After:     ${statsAfter.withDescription}/${statsAfter.totalBooks} (${statsAfter.percentage}%)`);
+  }
+}
+
+// =============================================================================
 // Automated Full Discovery (discover-all)
 // =============================================================================
 
@@ -2913,6 +3048,71 @@ async function runReconcileSubSeries(limit = 0, dryRun = false, filterName?: str
   console.log(`  Errors:                ${totalErrors}`);
   
   if (dryRun && (totalCreated > 0 || totalMoved > 0)) {
+    console.log('');
+    console.log('💡 Run without --dry-run to persist changes');
+  }
+  
+  const stats = getStats();
+  console.log(`\n📈 Database: ${stats.totalSeries} series, ${stats.totalBooks} books`);
+  console.log('═'.repeat(60));
+}
+
+/**
+ * Remove books from parent series that are duplicated in their child sub-series.
+ * 
+ * On ISFDB, parent/universe pages list ALL books including those that belong
+ * to child sub-series. When we import both the parent and child, we end up
+ * with the same books in both. This command removes the duplicates from the parent.
+ */
+function runDedupParents(dryRun = false, filterName?: string) {
+  console.log('🧹 Dedup Parent Series Books');
+  console.log('═'.repeat(60));
+  console.log(dryRun ? '⚠️  DRY RUN — no changes will be saved' : '💾 Will remove duplicate books from parents');
+  if (filterName) console.log(`🔍 Filtering to series matching: "${filterName}"`);
+  console.log('');
+  
+  let affected = findParentsWithDuplicateBooks();
+  
+  if (filterName) {
+    const filterNorm = filterName.toLowerCase();
+    affected = affected.filter(s => s.name.toLowerCase().includes(filterNorm));
+  }
+  
+  console.log(`📊 Found ${affected.length} parent series with duplicate books`);
+  console.log('');
+  
+  let totalRemoved = 0;
+  let processedCount = 0;
+  
+  for (const parent of affected) {
+    processedCount++;
+    const result = dedupParentBooks(parent.id, dryRun);
+    
+    if (result.removed > 0) {
+      totalRemoved += result.removed;
+      const verb = dryRun ? 'Would remove' : 'Removed';
+      console.log(`  [${processedCount}/${affected.length}] ${parent.name}: ${verb} ${result.removed} duplicate book(s)`);
+      if (result.titles.length <= 10) {
+        for (const title of result.titles) {
+          console.log(`      📦 ${title}`);
+        }
+      } else {
+        for (const title of result.titles.slice(0, 8)) {
+          console.log(`      📦 ${title}`);
+        }
+        console.log(`      ... and ${result.titles.length - 8} more`);
+      }
+    }
+  }
+  
+  console.log('');
+  console.log('═'.repeat(60));
+  console.log('📊 Dedup Summary');
+  console.log('═'.repeat(60));
+  console.log(`  Parent series checked: ${affected.length}`);
+  console.log(`  Books ${dryRun ? 'to remove' : 'removed'}:     ${totalRemoved}`);
+  
+  if (dryRun && totalRemoved > 0) {
     console.log('');
     console.log('💡 Run without --dry-run to persist changes');
   }

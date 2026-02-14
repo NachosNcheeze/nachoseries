@@ -210,12 +210,42 @@ async function fetchSeriesPage(seriesId: string): Promise<SourceSeries | null> {
   // Get the content area - books are in nested lists within ContentBox divs
   const contentBoxes = $('#content .ContentBox');
   
+  // Track sub-series <li> elements so we can skip their nested children
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const subSeriesElements = new Set<any>();
+  
   contentBoxes.each((boxIndex, box) => {
     const $box = $(box);
     
-    // Look for li elements that have a title link with italic class
+    // First pass: identify all sub-series <li> elements
     $box.find('li').each((_, el) => {
       const $li = $(el);
+      const seriesLink = $li.find('> a[href*="pe.cgi"]');
+      if (seriesLink.length > 0) {
+        const href = seriesLink.attr('href');
+        const match = href?.match(/pe\.cgi\?(\d+)/);
+        if (match && match[1] !== seriesId && match[1] !== parentSeriesId) {
+          subSeriesElements.add(el);
+        }
+      }
+    });
+    
+    // Second pass: process books, skipping any <li> nested under a sub-series <li>
+    $box.find('li').each((_, el) => {
+      const $li = $(el);
+      
+      // Check if this <li> is nested inside a sub-series <li>
+      // (i.e., it's a book belonging to a child sub-series, not the parent)
+      let isNestedUnderSubSeries = false;
+      let parent = $li.parent().closest('li');
+      while (parent.length > 0) {
+        if (subSeriesElements.has(parent[0])) {
+          isNestedUnderSubSeries = true;
+          break;
+        }
+        parent = parent.parent().closest('li');
+      }
+      if (isNestedUnderSubSeries) return;
       
       // Check if this li has a title link (class="italic" and href contains title.cgi)
       const titleLink = $li.find('> a.italic[href*="title.cgi"], > a[class*="italic"][href*="title.cgi"]');
@@ -269,11 +299,9 @@ async function fetchSeriesPage(seriesId: string): Promise<SourceSeries | null> {
         }
       }
       
-      // Skip short fiction marked with [SF]
-      const typeMarker = $li.text();
-      if (typeMarker.includes('[SF]')) {
-        return;
-      }
+      // Note: [SF] marker on ISFDB means "Short Fiction" but some novels are
+      // incorrectly tagged. Since we already filter by position, we include all
+      // positioned entries regardless of type marker.
       
       books.push({
         title,

@@ -48,6 +48,9 @@ CREATE TABLE IF NOT EXISTS series_book (
   ebook_known     INTEGER DEFAULT 0,    -- boolean
   audiobook_known INTEGER DEFAULT 0,    -- boolean
   
+  -- Description (enriched from Google Books)
+  description     TEXT,
+  
   -- External IDs
   openlibrary_key TEXT,
   librarything_id TEXT,
