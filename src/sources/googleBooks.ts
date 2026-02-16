@@ -166,7 +166,11 @@ export async function searchBook(
         score += 2;
       }
       
-      // Is English
+      // Must be English — reject non-English results entirely
+      // (langRestrict=en on the API doesn't always filter reliably)
+      if (vi.language && vi.language !== 'en') {
+        continue;
+      }
       if (vi.language === 'en') {
         score += 3;
       }

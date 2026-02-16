@@ -36,8 +36,36 @@ from pathlib import Path
 
 NACHOSERIES_DB = Path(__file__).parent.parent / "data" / "nachoseries.db"
 
-# Title types to include (excludes COLLECTION to avoid duplicates)
+# Title types to include (excludes COLLECTION, OMNIBUS, ESSAY to avoid duplicates)
 INCLUDED_TITLE_TYPES = {'NOVEL', 'NOVELLA', 'SHORTFICTION'}
+
+# Titles matching any of these patterns are excluded.
+# ISFDB includes excerpts, appendices, deleted scenes, system entries, etc.
+# that aren't standalone books readers would expect in a series listing.
+EXCLUDED_TITLE_PATTERNS = [
+    re.compile(r'\(excerpt\)', re.IGNORECASE),              # "The Final Empire (excerpt)"
+    re.compile(r'^Excerpt\s+from\b', re.IGNORECASE),        # "Excerpt from Golden Son"
+    re.compile(r'^Appendix:', re.IGNORECASE),                # "Appendix: Calendar and Currencies"
+    re.compile(r'^Deleted\s+Scenes?\b', re.IGNORECASE),      # "Deleted Scenes from the 2002..."
+    re.compile(r'^Endnote\b', re.IGNORECASE),                # "Endnote"
+    re.compile(r'^Prelude\s+to\b', re.IGNORECASE),           # "Prelude to the Stormlight Archive"
+    re.compile(r'^Prologue\s*\(', re.IGNORECASE),            # "Prologue (Edgedancer)"
+    re.compile(r'^Dramatis\s+Personae\b', re.IGNORECASE),    # "Dramatis Personae (Morning Star)"
+    re.compile(r'^untitled\s*\(', re.IGNORECASE),            # "untitled (Morning Star)"
+    re.compile(r'^The\s+Story\s+So\s+Far', re.IGNORECASE),   # "The Story So Far... (Morning Star)"
+    re.compile(r':\s*(?:Prologue|Chapter)\s+', re.IGNORECASE),  # "The Alloy of Law: Prologue - Chapter 6"
+    re.compile(r'^(?:The\s+)?\w+\s+System$', re.IGNORECASE), # "The Rosharan System", "The Scadrian System"
+    re.compile(r'Extended\s+Excerpt', re.IGNORECASE),        # "Iron Gold: Extended Excerpt"
+    re.compile(r'^First\s+Draft:', re.IGNORECASE),           # "First Draft: Sixth of the Dusk"
+    re.compile(r'^Edits:', re.IGNORECASE),                   # "Edits: Sixth of the Dusk"
+]
+
+
+def is_excluded_title(title):
+    """Check if a title matches any exclusion pattern."""
+    if not title:
+        return True
+    return any(p.search(title) for p in EXCLUDED_TITLE_PATTERNS)
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────
@@ -170,13 +198,18 @@ class ISFDBSqlite:
             list(series_ids) + list(INCLUDED_TITLE_TYPES)
         ).fetchall()
 
+        excluded = 0
         for row in rows:
+            title_text = row['title_title']
+            if is_excluded_title(title_text):
+                excluded += 1
+                continue
             sid = row['series_id']
             if sid not in titles:
                 titles[sid] = []
             titles[sid].append({
                 'title_id': row['title_id'],
-                'title': row['title_title'],
+                'title': title_text,
                 'series_id': sid,
                 'seriesnum': row['title_seriesnum'],
                 'copyright': row['title_copyright'],
@@ -184,6 +217,8 @@ class ISFDBSqlite:
             })
             title_ids.add(row['title_id'])
 
+        if excluded:
+            print(f"   Excluded {excluded} non-book titles (excerpts, appendices, etc.)")
         return titles, title_ids
 
     def find_authors_for_titles(self, title_ids):
@@ -472,10 +507,13 @@ class ISFDBDump:
                             ttype = t[9]
                             parent = t[12]
                             if sid in series_ids and ttype in INCLUDED_TITLE_TYPES and (parent == 0 or parent is None):
+                                title_text = t[1]
+                                if is_excluded_title(title_text):
+                                    continue
                                 if sid not in titles:
                                     titles[sid] = []
                                 titles[sid].append({
-                                    'title_id': t[0], 'title': t[1], 'series_id': sid,
+                                    'title_id': t[0], 'title': title_text, 'series_id': sid,
                                     'seriesnum': t[6], 'copyright': t[7], 'ttype': ttype,
                                 })
                                 title_ids.add(t[0])
