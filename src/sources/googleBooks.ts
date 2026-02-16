@@ -240,39 +240,141 @@ export async function searchBook(
 }
 
 /**
- * Search for series description by looking up the first book
- * Returns a description suitable for the series level
+ * Check if a description looks like a single-book synopsis rather than a series description.
+ * Returns true if the description appears to be about one specific book (not the series).
+ */
+function looksLikeBookSynopsis(description: string, seriesName?: string): boolean {
+  const lower = description.toLowerCase();
+
+  // Patterns that indicate a specific book in a series
+  const bookIndicators = [
+    /\bbook\s+\d+\b/i,                          // "Book 11 of..."
+    /\bvolume\s+\d+\b/i,                         // "Volume 3..."
+    /\b(?:first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth)\s+(?:book|novel|installment|volume|entry)\b/i,
+    /\b(?:sequel|prequel|continuation|conclusion)\b/i,
+    /\bpick(?:s)?\s+up\s+where\b/i,              // "picks up where Book X left off"
+    /\bgrab\s+your\s+copy\b/i,                   // marketing for individual book
+    /\bbuy\s+(?:now|today|your\s+copy)\b/i,
+    /\bavailable\s+now\b/i,
+    /\bin\s+this\s+(?:thrilling|exciting|latest|new)\s+(?:installment|entry|chapter|book)\b/i,
+    /\bthe\s+(?:latest|newest|final|last)\s+(?:book|installment|entry|novel)\b/i,
+  ];
+
+  for (const pattern of bookIndicators) {
+    if (pattern.test(description)) {
+      return true;
+    }
+  }
+
+  // If description is very character-specific and doesn't mention the series name, likely a book synopsis
+  // (e.g., "Zac must stop them" with no mention of what the series is about broadly)
+  if (seriesName) {
+    const seriesLower = seriesName.toLowerCase();
+    // If the description never mentions the series by name and reads like a plot summary
+    // with a specific character doing specific things, it's likely a book synopsis.
+    // But we can't be too aggressive here — many valid series descriptions also have character names.
+    // Only flag if the description has NONE of these series-level signals:
+    const seriesSignals = [
+      /\bseries\b/i,
+      /\btrilogy\b/i,
+      /\bsaga\b/i,
+      /\bcollection\b/i,
+      /\bchronicles?\b/i,
+      /\bfollow(?:s|ing)?\s+(?:the\s+)?(?:adventures?|journey|story|stories)\b/i,
+      /\bepic\s+(?:fantasy|saga|adventure|series)\b/i,
+      new RegExp(`\\b${seriesLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i'),
+    ];
+
+    const hasSeriesSignal = seriesSignals.some(p => p.test(description));
+    if (!hasSeriesSignal && description.length < 500) {
+      // Short description with no series signals — likely a book synopsis
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Search for a true series-level description.
+ * 
+ * Strategy:
+ * 1. Search Google Books for the series name directly — may find a box set or series overview
+ * 2. If that fails, check individual books for descriptions that read like series overviews
+ *    (containing words like "series", "saga", "chronicles", etc.)
+ * 3. Reject descriptions that are clearly single-book synopses
+ *    (containing "Book X of", "grab your copy", character-specific plot)
+ * 
+ * Returns null rather than returning a book synopsis — better to have no series description
+ * than a misleading one. Book synopses belong in series_book.description.
  */
 export async function getSeriesDescription(
   books: Array<{ title: string; author?: string }>,
   seriesName?: string,
   maxAttempts: number = 3
 ): Promise<{ description: string; source: string } | null> {
-  // Try the first few books until we get a good description
+  // STRATEGY 1: Search for the series name directly
+  // This sometimes finds box sets, omnibus editions, or series landing pages
+  // that have genuine series-level descriptions
+  if (seriesName) {
+    // Try "series name + series" to find overview entries
+    const seriesSearches = [
+      `${seriesName} series`,
+      seriesName,
+    ];
+
+    for (const query of seriesSearches) {
+      const enrichment = await searchBook(query);
+      if (enrichment?.description && enrichment.description.length > 50) {
+        if (!looksLikeBookSynopsis(enrichment.description, seriesName)) {
+          return {
+            description: enrichment.description,
+            source: `google-books:${enrichment.googleBooksId}`,
+          };
+        }
+      }
+    }
+  }
+
+  // STRATEGY 2: Check individual book descriptions for series-level content
+  // Sometimes book 1's description includes a series overview paragraph
+  // (e.g., "SERIES DESCRIPTION: The Cradle series is...")
   const booksToTry = books.slice(0, maxAttempts);
   
   for (const book of booksToTry) {
     const enrichment = await searchBook(book.title, book.author);
     
     if (enrichment?.description && enrichment.description.length > 50) {
-      return {
-        description: enrichment.description,
-        source: `google-books:${enrichment.googleBooksId}`,
-      };
+      // Check if the description contains an explicit series description section
+      const seriesDescMatch = enrichment.description.match(
+        /(?:SERIES\s+DESCRIPTION|ABOUT\s+THE\s+SERIES|THE\s+SERIES)[:\s]*(.{50,})/is
+      );
+      if (seriesDescMatch) {
+        return {
+          description: seriesDescMatch[1].trim(),
+          source: `google-books:${enrichment.googleBooksId}`,
+        };
+      }
+
+      // Only use a book description if it genuinely reads like a series overview
+      if (!looksLikeBookSynopsis(enrichment.description, seriesName)) {
+        // Additional check: the description should feel like it's describing a series arc,
+        // not a single book's plot. We do this by requiring series-level language.
+        const hasSeriesLanguage = /\bseries\b|\btrilogy\b|\bsaga\b|\bchronicles?\b|\bbooks?\s+in\b/i.test(
+          enrichment.description
+        );
+        if (hasSeriesLanguage) {
+          return {
+            description: enrichment.description,
+            source: `google-books:${enrichment.googleBooksId}`,
+          };
+        }
+      }
     }
   }
   
-  // If individual books failed, try searching for the series name directly
-  if (seriesName) {
-    const enrichment = await searchBook(seriesName);
-    if (enrichment?.description && enrichment.description.length > 50) {
-      return {
-        description: enrichment.description,
-        source: `google-books:${enrichment.googleBooksId}`,
-      };
-    }
-  }
-  
+  // Better to return null than a book synopsis masquerading as a series description.
+  // The frontend will fall back to firstBookDescription (clearly labeled) or a generated description.
   return null;
 }
 

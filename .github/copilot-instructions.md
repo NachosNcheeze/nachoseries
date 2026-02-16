@@ -159,6 +159,28 @@ PROJECT DISTRIBUTION RULES
    - Users manually copy the relevant service definitions to their addons-compose.yml
 
 ================================================================================
+DATA INTEGRITY & AUTOMATED PROCESSES
+================================================================================
+
+8. NEVER manually correct data issues via raw SQL during testing or development.
+   - If data is wrong → fix the script or process that produced it, then re-run.
+   - If data is missing → fix the gathering or enrichment pipeline.
+   - Manual SQL is acceptable ONLY for one-time schema migrations.
+   - Why: Manual fixes mask pipeline bugs. The pipeline must be self-correcting.
+
+9. Services (NachoSeries, NachoGrabs, etc.) must manage themselves through
+   automated processes:
+   - Discovery: Find new data automatically (crawlers, scrapers, imports)
+   - Enrichment: Fill missing metadata automatically (descriptions, ISBNs)
+   - Correction: Detect and fix data quality issues automatically
+   - Maintenance: Dedup, reconcile, and clean up on schedule
+
+10. Fix ROOT CAUSES, not symptoms:
+    - When a bug causes multiple symptoms, don't fix A, then B, then C.
+    - Step back, identify the root cause, fix it once, verify all symptoms gone.
+    - Applies equally to code bugs AND data pipeline bugs.
+
+================================================================================
 CONFIG & DATA FILE LOCATIONS
 ================================================================================
 
