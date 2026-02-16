@@ -48,6 +48,7 @@ export const config = {
     librarything: 1,       // 1 req/sec for page scraping
     openLibrary: 5,        // 5 req/sec allowed
     isfdb: 1,              // Be nice to ISFDB
+    itunes: 0.33,          // ~20 req/min → 1 req/3s
   },
   
   // Scheduling

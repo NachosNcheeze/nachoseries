@@ -6,6 +6,7 @@
 import { initDatabase, getStats, closeDatabase, upsertSeries, upsertSeriesBook, findSeriesByName, getSeriesNeedingVerification, storeSourceData, getDb, updateSeriesGenre, saveSourceSeries, findSeriesByIsfdbId, setParentSeries, getChildSeries, getParentSeriesList, moveBookToSeries, deleteSeriesBook, refreshSeriesBookCount, normalizeText, getBooksInSeries, updateBookDescription, getBooksNeedingDescriptions, getDescriptionStats, dedupParentBooks, findParentsWithDuplicateBooks, type SeriesRecord } from './database/db.js';
 import { fetchSeries as fetchLibraryThing } from './sources/librarything.js';
 import { fetchSeries as fetchOpenLibrary, searchBookDescription } from './sources/openLibrary.js';
+import { searchBookDescription as searchITunesDescription } from './sources/itunes.js';
 import { fetchSeries as fetchISFDB, browseSeriesByGenre, fetchSeriesById, genreKeywords, discoverSeriesFromAuthors, scanSeriesRange, fetchPopularAuthors, fetchAuthorSeries, mapTagsToGenre, detectGenre, guessGenreFromName } from './sources/isfdb.js';
 import { fetchSeries as fetchGoodreads, testGoodreads } from './sources/goodreads.js';
 import { importGenre as importGoodreadsGenre, importAllGenres as importAllGoodreadsGenres, GENRE_LISTS } from './sources/goodreadsList.js';
@@ -1918,7 +1919,7 @@ async function runEnrichBookDescriptions(limit = 500, genre?: string, dryRun = f
         description = enrichment.description;
       }
       
-      // Fallback: try Open Library if Google Books had no description
+      // Fallback 1: try Open Library if Google Books had no description
       if (!description) {
         console.log(`    ↳ Google Books miss, trying Open Library...`);
         const olResult = await searchBookDescription(book.title, author);
@@ -1928,12 +1929,22 @@ async function runEnrichBookDescriptions(limit = 500, genre?: string, dryRun = f
         }
       }
       
+      // Fallback 2: try iTunes if both Google Books and Open Library missed
+      if (!description) {
+        console.log(`    ↳ Open Library miss, trying iTunes...`);
+        const itunesResult = await searchITunesDescription(book.title, author);
+        if (itunesResult && itunesResult.description.length > 30) {
+          description = itunesResult.description;
+          descSource = 'itunes';
+        }
+      }
+      
       if (description) {
         if (!dryRun) {
           updateBookDescription(book.id, description);
         }
         
-        const srcLabel = descSource === 'openlibrary' ? ' [OL]' : '';
+        const srcLabel = descSource === 'openlibrary' ? ' [OL]' : descSource === 'itunes' ? ' [iTunes]' : '';
         const truncated = description.length > 80 
           ? description.substring(0, 77) + '...' 
           : description;
