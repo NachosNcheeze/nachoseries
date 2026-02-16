@@ -1,10 +1,21 @@
 /**
  * Open Library Source Fetcher
- * Uses Open Library API for series data
+ * Uses Open Library API for series data and book description fallback.
+ * 
+ * API docs: https://openlibrary.org/dev/docs/api/books
+ * - Search: /search.json?q=TITLE&fields=key,title,author_name
+ * - Works:  /works/OL_ID.json → has 'description' field
+ * - Editions: /books/OL_ID.json → sometimes has 'description' field
+ * 
+ * Descriptions may be a plain string or { type: "/type/text", value: "..." }
  */
 
 import { config } from '../config.js';
+import { fetchWithTimeout, withRetry } from '../utils/resilience.js';
 import type { SourceBook, SourceSeries, SourceResult } from '../types.js';
+
+const USER_AGENT = 'NachoSeries/0.1.0 (Book Enrichment; Series Indexer)';
+const FETCH_TIMEOUT = 10000;
 
 // Rate limiter
 let lastRequest = 0;
@@ -207,5 +218,180 @@ export async function searchSeriesByGenre(genre: string, limit = 50): Promise<st
   } catch (error) {
     console.error(`[OpenLibrary] Error searching genre ${genre}:`, error);
     return [];
+  }
+}
+
+// =============================================================================
+// Book Description Fallback
+// =============================================================================
+
+/**
+ * Extract description text from Open Library's description field.
+ * It can be either a plain string or { type: "/type/text", value: "..." }
+ */
+function extractDescription(desc: unknown): string | null {
+  if (!desc) return null;
+  if (typeof desc === 'string') return desc.trim();
+  if (typeof desc === 'object' && desc !== null && 'value' in desc) {
+    const val = (desc as { value: unknown }).value;
+    if (typeof val === 'string') return val.trim();
+  }
+  return null;
+}
+
+/**
+ * Clean up an Open Library description:
+ * - Strip source citations like "([source])" at the end
+ * - Remove "----------" separators sometimes appended
+ * - Trim trailing whitespace
+ */
+function cleanDescription(raw: string): string {
+  let desc = raw
+    .replace(/\r\n/g, '\n')
+    .replace(/\(?\[source\][\)\.]?\s*$/i, '')
+    .replace(/-{5,}[\s\S]*$/, '')          // cut off "-----" separators + anything after
+    .replace(/\s+$/, '');
+  return desc;
+}
+
+interface OLSearchDoc {
+  key: string;
+  title: string;
+  author_name?: string[];
+  first_publish_year?: number;
+}
+
+/**
+ * Search Open Library for a book and return its description.
+ * 
+ * Flow:
+ * 1. Search by title (+ optional author) to get the work key
+ * 2. Fetch the work JSON for a description
+ * 3. If the work lacks a description, fetch the first edition
+ * 
+ * Returns null if no description is found.
+ */
+export async function searchBookDescription(
+  title: string,
+  author?: string,
+): Promise<{ description: string; source: string } | null> {
+  try {
+    // --- Step 1: Search for the book ---
+    await rateLimit();
+
+    let query = encodeURIComponent(title);
+    if (author) {
+      query += `+${encodeURIComponent(author)}`;
+    }
+    const searchUrl = `https://openlibrary.org/search.json?q=${query}&fields=key,title,author_name,first_publish_year&limit=5`;
+
+    const searchResp = await withRetry(
+      () => fetchWithTimeout(searchUrl, {
+        headers: { 'User-Agent': USER_AGENT },
+        timeout: FETCH_TIMEOUT,
+      }),
+      {
+        maxRetries: 2,
+        baseDelay: 2000,
+        retryOn: (err) => {
+          if (!(err instanceof Error)) return false;
+          const m = err.message.toLowerCase();
+          return m.includes('econnrefused') || m.includes('econnreset') ||
+                 m.includes('etimedout') || m.includes('aborted') || m.includes('fetch failed');
+        },
+      }
+    );
+
+    if (!searchResp.ok) {
+      console.error(`[OpenLibrary] Search HTTP ${searchResp.status}`);
+      return null;
+    }
+
+    const searchData = await searchResp.json() as { docs?: OLSearchDoc[] };
+    if (!searchData.docs || searchData.docs.length === 0) return null;
+
+    // Pick best match: prefer title + author match
+    const normalizedTitle = title.toLowerCase().replace(/[^\w\s]/g, '');
+    let bestDoc: OLSearchDoc | null = null;
+    let bestScore = -1;
+
+    for (const doc of searchData.docs) {
+      let score = 0;
+      const docTitle = doc.title.toLowerCase().replace(/[^\w\s]/g, '');
+
+      if (docTitle === normalizedTitle) {
+        score += 10;
+      } else if (docTitle.includes(normalizedTitle) || normalizedTitle.includes(docTitle)) {
+        score += 5;
+      } else {
+        continue; // title doesn't match at all — skip
+      }
+
+      if (author && doc.author_name) {
+        const authorLower = author.toLowerCase();
+        const authorLast = authorLower.split(/\s+/).pop() || authorLower;
+        const matches = doc.author_name.some(a => {
+          const la = a.toLowerCase();
+          const laLast = la.split(/\s+/).pop() || la;
+          return la.includes(authorLower) || authorLower.includes(la) || laLast === authorLast;
+        });
+        if (matches) score += 4;
+        else continue; // wrong author — skip
+      }
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestDoc = doc;
+      }
+    }
+
+    if (!bestDoc) return null;
+
+    // --- Step 2: Fetch the work for description ---
+    await rateLimit();
+    const workUrl = `https://openlibrary.org${bestDoc.key}.json`;
+    const workResp = await fetchWithTimeout(workUrl, {
+      headers: { 'User-Agent': USER_AGENT },
+      timeout: FETCH_TIMEOUT,
+    });
+
+    if (workResp.ok) {
+      const work = await workResp.json() as Record<string, unknown>;
+      const desc = extractDescription(work.description);
+      if (desc && desc.length > 30) {
+        return {
+          description: cleanDescription(desc),
+          source: `openlibrary:${bestDoc.key}`,
+        };
+      }
+    }
+
+    // --- Step 3: Fetch editions for description ---
+    await rateLimit();
+    const editionsUrl = `https://openlibrary.org${bestDoc.key}/editions.json`;
+    const edResp = await fetchWithTimeout(editionsUrl, {
+      headers: { 'User-Agent': USER_AGENT },
+      timeout: FETCH_TIMEOUT,
+    });
+
+    if (edResp.ok) {
+      const edData = await edResp.json() as { entries?: Array<Record<string, unknown>> };
+      if (edData.entries) {
+        for (const edition of edData.entries) {
+          const desc = extractDescription(edition.description);
+          if (desc && desc.length > 30) {
+            return {
+              description: cleanDescription(desc),
+              source: `openlibrary:${edition.key || bestDoc.key}`,
+            };
+          }
+        }
+      }
+    }
+
+    return null;
+  } catch (error) {
+    console.error(`[OpenLibrary] Error searching "${title}":`, error instanceof Error ? error.message : error);
+    return null;
   }
 }

@@ -5,7 +5,7 @@
 
 import { initDatabase, getStats, closeDatabase, upsertSeries, upsertSeriesBook, findSeriesByName, getSeriesNeedingVerification, storeSourceData, getDb, updateSeriesGenre, saveSourceSeries, findSeriesByIsfdbId, setParentSeries, getChildSeries, getParentSeriesList, moveBookToSeries, deleteSeriesBook, refreshSeriesBookCount, normalizeText, getBooksInSeries, updateBookDescription, getBooksNeedingDescriptions, getDescriptionStats, dedupParentBooks, findParentsWithDuplicateBooks, type SeriesRecord } from './database/db.js';
 import { fetchSeries as fetchLibraryThing } from './sources/librarything.js';
-import { fetchSeries as fetchOpenLibrary } from './sources/openLibrary.js';
+import { fetchSeries as fetchOpenLibrary, searchBookDescription } from './sources/openLibrary.js';
 import { fetchSeries as fetchISFDB, browseSeriesByGenre, fetchSeriesById, genreKeywords, discoverSeriesFromAuthors, scanSeriesRange, fetchPopularAuthors, fetchAuthorSeries, mapTagsToGenre, detectGenre, guessGenreFromName } from './sources/isfdb.js';
 import { fetchSeries as fetchGoodreads, testGoodreads } from './sources/goodreads.js';
 import { importGenre as importGoodreadsGenre, importAllGenres as importAllGoodreadsGenres, GENRE_LISTS } from './sources/goodreadsList.js';
@@ -1908,21 +1908,36 @@ async function runEnrichBookDescriptions(limit = 500, genre?: string, dryRun = f
     try {
       // Use the book's own author, fall back to series author
       const author = book.author || book.series_author || undefined;
+      
+      // Try Google Books first
       const enrichment = await searchBook(book.title, author);
+      let description: string | null = null;
+      let descSource = 'google-books';
       
       if (enrichment?.description && enrichment.description.length > 30) {
-        // Validate: make sure the description isn't obviously for a different book
-        // Simple check: if we searched with author and got a result, trust it
-        // (Google Books scoring in searchBook already handles title/author matching)
-        
+        description = enrichment.description;
+      }
+      
+      // Fallback: try Open Library if Google Books had no description
+      if (!description) {
+        console.log(`    ↳ Google Books miss, trying Open Library...`);
+        const olResult = await searchBookDescription(book.title, author);
+        if (olResult && olResult.description.length > 30) {
+          description = olResult.description;
+          descSource = 'openlibrary';
+        }
+      }
+      
+      if (description) {
         if (!dryRun) {
-          updateBookDescription(book.id, enrichment.description);
+          updateBookDescription(book.id, description);
         }
         
-        const truncated = enrichment.description.length > 80 
-          ? enrichment.description.substring(0, 77) + '...' 
-          : enrichment.description;
-        console.log(`  ${progress} ✅ ${book.title} (${enrichment.description.length} chars) — ${truncated}`);
+        const srcLabel = descSource === 'openlibrary' ? ' [OL]' : '';
+        const truncated = description.length > 80 
+          ? description.substring(0, 77) + '...' 
+          : description;
+        console.log(`  ${progress} ✅ ${book.title}${srcLabel} (${description.length} chars) — ${truncated}`);
         enriched++;
       } else {
         console.log(`  ${progress} ⏭️  ${book.title} — no description found`);
