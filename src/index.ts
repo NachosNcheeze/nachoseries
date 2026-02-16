@@ -131,12 +131,13 @@ async function main() {
 
     case 'enrich': {
       // Enrich series with descriptions and ISBNs from Google Books
-      // Usage: enrich [--descriptions] [--isbns] [--limit=N] [--genre=GENRE]
+      // Usage: enrich [--descriptions] [--isbns] [--limit=N] [--genre=GENRE] [--series=NAME]
       const enrichLimit = parseInt(args.find(a => a.startsWith('--limit='))?.split('=')[1] || '100');
       const enrichGenre = args.find(a => a.startsWith('--genre='))?.split('=')[1];
+      const enrichSeries = args.find(a => a.startsWith('--series='))?.split('=').slice(1).join('=');
       const enrichDescriptions = args.includes('--descriptions') || (!args.includes('--isbns'));
       const enrichIsbns = args.includes('--isbns');
-      await runGoogleBooksEnrich(enrichLimit, enrichGenre, enrichDescriptions, enrichIsbns);
+      await runGoogleBooksEnrich(enrichLimit, enrichGenre, enrichDescriptions, enrichIsbns, enrichSeries);
       break;
     }
 
@@ -195,11 +196,12 @@ async function main() {
 
     case 'enrich-books': {
       // Enrich individual books with descriptions from Google Books
-      // Usage: enrich-books [--limit=N] [--genre=GENRE] [--dry-run]
+      // Usage: enrich-books [--limit=N] [--genre=GENRE] [--series=NAME] [--dry-run]
       const ebLimit = parseInt(args.find(a => a.startsWith('--limit='))?.split('=')[1] || '500');
       const ebGenre = args.find(a => a.startsWith('--genre='))?.split('=')[1];
+      const ebSeries = args.find(a => a.startsWith('--series='))?.split('=').slice(1).join('=');
       const ebDryRun = args.includes('--dry-run');
-      await runEnrichBookDescriptions(ebLimit, ebGenre, ebDryRun);
+      await runEnrichBookDescriptions(ebLimit, ebGenre, ebDryRun, ebSeries);
       break;
     }
 
@@ -1733,11 +1735,12 @@ async function runShelfImport(genre: string, save = false, maxPages = 5) {
  * Enrich existing series with descriptions and ISBNs from Google Books.
  * Processes series that are missing descriptions, updating them in place.
  */
-async function runGoogleBooksEnrich(limit = 100, genre?: string, doDescriptions = true, doIsbns = false) {
+async function runGoogleBooksEnrich(limit = 100, genre?: string, doDescriptions = true, doIsbns = false, seriesFilter?: string) {
   console.log('📖 Google Books Enrichment');
   console.log('─'.repeat(50));
   console.log(`📊 Limit: ${limit} series`);
   if (genre) console.log(`🏷️  Genre filter: ${genre}`);
+  if (seriesFilter) console.log(`📌 Series filter: ${seriesFilter}`);
   console.log(`📝 Descriptions: ${doDescriptions ? 'Yes' : 'No'}`);
   console.log(`🔢 ISBNs: ${doIsbns ? 'Yes' : 'No'}`);
   console.log('─'.repeat(50));
@@ -1754,10 +1757,12 @@ async function runGoogleBooksEnrich(limit = 100, genre?: string, doDescriptions 
       FROM series s
       WHERE (s.description IS NULL OR s.description = '')
       ${genre ? 'AND s.genre = ?' : ''}
+      ${seriesFilter ? 'AND s.name_normalized LIKE ?' : ''}
       ORDER BY s.confidence DESC, s.total_books DESC
       LIMIT ?
     `;
     if (genre) params.push(genre);
+    if (seriesFilter) params.push(`%${seriesFilter.toLowerCase().replace(/[^\w\s]/g, '')}%`);
     params.push(limit);
   } else {
     // ISBNs only — get series that have books without ISBNs
@@ -1767,10 +1772,12 @@ async function runGoogleBooksEnrich(limit = 100, genre?: string, doDescriptions 
       JOIN series_book sb ON sb.series_id = s.id
       WHERE (sb.isbn IS NULL OR sb.isbn = '')
       ${genre ? 'AND s.genre = ?' : ''}
+      ${seriesFilter ? 'AND s.name_normalized LIKE ?' : ''}
       ORDER BY s.confidence DESC
       LIMIT ?
     `;
     if (genre) params.push(genre);
+    if (seriesFilter) params.push(`%${seriesFilter.toLowerCase().replace(/[^\w\s]/g, '')}%`);
     params.push(limit);
   }
   
@@ -1856,7 +1863,7 @@ async function runGoogleBooksEnrich(limit = 100, genre?: string, doDescriptions 
  * Unlike the series-level 'enrich' command, this stores descriptions
  * on each series_book row so NachoReads can serve them instantly.
  */
-async function runEnrichBookDescriptions(limit = 500, genre?: string, dryRun = false) {
+async function runEnrichBookDescriptions(limit = 500, genre?: string, dryRun = false, seriesFilter?: string) {
   console.log('📖 Book Description Enrichment');
   console.log('─'.repeat(60));
   
@@ -1865,12 +1872,13 @@ async function runEnrichBookDescriptions(limit = 500, genre?: string, dryRun = f
   console.log(`📊 Current: ${statsBefore.withDescription}/${statsBefore.totalBooks} books have descriptions (${statsBefore.percentage}%)`);
   console.log(`📝 To enrich: up to ${limit} books`);
   if (genre) console.log(`🏷️  Genre filter: ${genre}`);
+  if (seriesFilter) console.log(`📌 Series filter: ${seriesFilter}`);
   if (dryRun) console.log('🔍 DRY RUN — no changes will be saved');
   console.log('─'.repeat(60));
   console.log('');
   
   // Get books needing descriptions
-  const books = getBooksNeedingDescriptions(limit, genre);
+  const books = getBooksNeedingDescriptions(limit, genre, seriesFilter);
   
   if (books.length === 0) {
     console.log('✅ All books already have descriptions!');

@@ -1141,7 +1141,8 @@ export function updateBookDescription(bookId: string, description: string): void
  */
 export function getBooksNeedingDescriptions(
   limit = 100,
-  genre?: string
+  genre?: string,
+  seriesFilter?: string
 ): Array<{ id: string; title: string; author: string | null; series_id: string; series_name: string; series_author: string | null }> {
   const db = getDb();
   
@@ -1157,6 +1158,11 @@ export function getBooksNeedingDescriptions(
   if (genre) {
     sql += ' AND s.genre = ?';
     params.push(genre);
+  }
+  
+  if (seriesFilter) {
+    sql += ' AND s.name_normalized LIKE ?';
+    params.push(`%${seriesFilter.toLowerCase().replace(/[^\w\s]/g, '')}%`);
   }
   
   sql += ' ORDER BY s.confidence DESC, s.total_books DESC, b.position ASC LIMIT ?';

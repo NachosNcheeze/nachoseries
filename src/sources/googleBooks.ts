@@ -340,6 +340,7 @@ export async function getSeriesDescription(
   // Sometimes book 1's description includes a series overview paragraph
   // (e.g., "SERIES DESCRIPTION: The Cradle series is...")
   const booksToTry = books.slice(0, maxAttempts);
+  let fallbackDescription: { description: string; source: string } | null = null;
   
   for (const book of booksToTry) {
     const enrichment = await searchBook(book.title, book.author);
@@ -356,10 +357,8 @@ export async function getSeriesDescription(
         };
       }
 
-      // Only use a book description if it genuinely reads like a series overview
+      // Prefer descriptions that genuinely read like a series overview
       if (!looksLikeBookSynopsis(enrichment.description, seriesName)) {
-        // Additional check: the description should feel like it's describing a series arc,
-        // not a single book's plot. We do this by requiring series-level language.
         const hasSeriesLanguage = /\bseries\b|\btrilogy\b|\bsaga\b|\bchronicles?\b|\bbooks?\s+in\b/i.test(
           enrichment.description
         );
@@ -370,12 +369,22 @@ export async function getSeriesDescription(
           };
         }
       }
+
+      // Save first usable description as fallback (book 1's description)
+      if (!fallbackDescription) {
+        fallbackDescription = {
+          description: enrichment.description,
+          source: `google-books:${enrichment.googleBooksId}`,
+        };
+      }
     }
   }
   
-  // Better to return null than a book synopsis masquerading as a series description.
-  // The frontend will fall back to firstBookDescription (clearly labeled) or a generated description.
-  return null;
+  // STRATEGY 3: Fall back to first book's description.
+  // For niche/small series, Google Books won't have a series-level description.
+  // Book 1's description is better than nothing — the frontend can label it
+  // as "About the first book" if needed.
+  return fallbackDescription;
 }
 
 /**
