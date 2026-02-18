@@ -5,7 +5,7 @@ Import specific series from an ISFDB SQLite database into NachoSeries.
 Requires: First run load-isfdb-to-sqlite.py to create the ISFDB SQLite DB.
 
 Usage:
-    python3 scripts/import-isfdb-dump.py <isfdb_db_or_dump> [--genre=GENRE] [--dry-run] <series_name1> [series_name2 ...]
+    python3 scripts/import-isfdb-dump.py <isfdb_db_or_dump> [--genre=GENRE] [--dry-run] [--merge-children] [--from-db] <series_name1> [series_name2 ...]
 
 Arguments:
     isfdb_db_or_dump   Path to ISFDB SQLite DB (/tmp/isfdb.db) or MySQL dump file.
@@ -13,12 +13,29 @@ Arguments:
                        If a dump file is given, parses it line-by-line (slow, ~90s).
 
 Options:
-    --genre=GENRE   Set genre on all imported series (e.g. litrpg, fantasy, post-apocalyptic)
-    --dry-run       Show what would be imported without making database changes
+    --genre=GENRE      Set genre on all imported series (e.g. litrpg, fantasy, post-apocalyptic)
+    --dry-run          Show what would be imported without making database changes
+    --merge-children   Merge direct ISFDB sub-series into their parent target series.
+                       E.g. "Mistborn" has child "Wax and Wayne" in ISFDB; with this flag,
+                       Wax and Wayne's books are added to Mistborn as books 4-7 instead of
+                       being created as a separate series entry.
+    --from-db          Read ALL series names from the NachoSeries database instead of
+                       specifying them on the command line. Useful for full-scale imports
+                       to backfill ISFDB IDs and parent/child relationships. Optionally
+                       filter by genre with --genre=GENRE.
 
 Example:
     # Fast (after running load-isfdb-to-sqlite.py):
     python3 scripts/import-isfdb-dump.py /tmp/isfdb.db --genre=litrpg "Cradle" "Dungeon Crawler Carl"
+
+    # Merge ISFDB sub-series into parent (e.g. Wax and Wayne → Mistborn):
+    python3 scripts/import-isfdb-dump.py /tmp/isfdb.db --genre=fantasy --merge-children "Mistborn"
+
+    # Full-scale import: match all NachoSeries series against ISFDB:
+    python3 scripts/import-isfdb-dump.py /tmp/isfdb.db --from-db
+
+    # Full-scale import filtered by genre:
+    python3 scripts/import-isfdb-dump.py /tmp/isfdb.db --from-db --genre=litrpg
 
     # Slow (direct dump parsing, no loader needed):
     python3 scripts/import-isfdb-dump.py /tmp/isfdb-backup/.../backup-MySQL-55-2026-02-14 --genre=litrpg "Cradle"
@@ -38,6 +55,9 @@ NACHOSERIES_DB = Path(__file__).parent.parent / "data" / "nachoseries.db"
 
 # Title types to include (excludes COLLECTION, OMNIBUS, ESSAY to avoid duplicates)
 INCLUDED_TITLE_TYPES = {'NOVEL', 'NOVELLA', 'SHORTFICTION'}
+
+# ISFDB language ID for English (filter out translations)
+ENGLISH_LANG_ID = 17
 
 # Titles matching any of these patterns are excluded.
 # ISFDB includes excerpts, appendices, deleted scenes, system entries, etc.
@@ -107,31 +127,39 @@ class ISFDBSqlite:
         self.db.close()
 
     def find_series_ids(self, target_names):
-        """Find ISFDB series IDs for the given series names."""
+        """Find ISFDB series IDs for the given series names.
+        Handles batching automatically for >900 names (SQLite variable limit)."""
         target_lower = {name.lower(): name for name in target_names}
         found = {}
 
         print(f"\n🔍 Searching for {len(target_names)} series in ISFDB database...")
 
-        placeholders = ','.join(['?'] * len(target_names))
-        lower_names = [n.lower() for n in target_names]
-        rows = self.db.execute(
-            f"SELECT * FROM series WHERE LOWER(series_title) IN ({placeholders})",
-            lower_names
-        ).fetchall()
+        # Batch to stay under SQLite's 999 variable limit
+        name_list = list(target_names)
+        for i in range(0, len(name_list), 900):
+            batch = name_list[i:i+900]
+            placeholders = ','.join(['?'] * len(batch))
+            lower_names = [n.lower() for n in batch]
+            rows = self.db.execute(
+                f"SELECT * FROM series WHERE LOWER(series_title) IN ({placeholders})",
+                lower_names
+            ).fetchall()
 
-        for row in rows:
-            title = row['series_title']
-            if title and title.lower() in target_lower:
-                orig = target_lower[title.lower()]
-                found[orig] = {
-                    'series_id': row['series_id'],
-                    'series_title': row['series_title'],
-                    'series_parent': row['series_parent'],
-                    'series_type': row['series_type'],
-                    'series_parent_position': row['series_parent_position'],
-                    'series_note_id': row['series_note_id'],
-                }
+            for row in rows:
+                title = row['series_title']
+                if title and title.lower() in target_lower:
+                    orig = target_lower[title.lower()]
+                    found[orig] = {
+                        'series_id': row['series_id'],
+                        'series_title': row['series_title'],
+                        'series_parent': row['series_parent'],
+                        'series_type': row['series_type'],
+                        'series_parent_position': row['series_parent_position'],
+                        'series_note_id': row['series_note_id'],
+                    }
+
+            if len(name_list) > 900 and (i + 900) < len(name_list):
+                print(f"   Batch {i//900 + 1}: matched {len(found)} so far...")
 
         return found
 
@@ -194,8 +222,9 @@ class ISFDBSqlite:
             f"""SELECT * FROM titles 
                 WHERE series_id IN ({placeholders}) 
                 AND title_ttype IN ({type_placeholders})
-                AND (title_parent = 0 OR title_parent IS NULL)""",
-            list(series_ids) + list(INCLUDED_TITLE_TYPES)
+                AND (title_parent = 0 OR title_parent IS NULL)
+                AND title_language = ?""",
+            list(series_ids) + list(INCLUDED_TITLE_TYPES) + [ENGLISH_LANG_ID]
         ).fetchall()
 
         excluded = 0
@@ -506,7 +535,10 @@ class ISFDBDump:
                             sid = t[5]
                             ttype = t[9]
                             parent = t[12]
+                            lang = t[16]
                             if sid in series_ids and ttype in INCLUDED_TITLE_TYPES and (parent == 0 or parent is None):
+                                if lang is not None and lang != ENGLISH_LANG_ID:
+                                    continue  # Skip non-English translations
                                 title_text = t[1]
                                 if is_excluded_title(title_text):
                                     continue
@@ -777,7 +809,131 @@ def import_to_nachoseries(series_data, dry_run=False, genre=None):
     print(f"{'=' * 60}")
 
 
-def run_import(isfdb, target_names, dry_run=False, genre=None):
+def run_bulk_import(isfdb, target_names, dry_run=False, genre=None):
+    """Bulk import: match existing NachoSeries series to ISFDB IDs and parent relationships.
+    Skips title/author/publication lookups since series already exist with books.
+    Much faster than run_import for thousands of series."""
+
+    print(f"\n{'=' * 60}")
+    print(f"BULK IMPORT MODE — {len(target_names)} series to match")
+    print(f"{'=' * 60}")
+
+    # Step 1: Find series IDs in ISFDB
+    found_series = isfdb.find_series_ids(target_names)
+
+    matched = len(found_series)
+    total = len(target_names)
+    print(f"\n📊 Matched {matched}/{total} series in ISFDB ({matched*100//total}%)")
+
+    if not found_series:
+        print("\nNo series found in ISFDB. Exiting.")
+        return
+
+    # Step 2: Find parent series
+    parent_ids = {s['series_parent'] for s in found_series.values() if s['series_parent']}
+    parents = {}
+    if parent_ids:
+        parents = isfdb.find_parent_series(parent_ids)
+        print(f"📁 Found {len(parents)} parent series")
+
+    # Step 3: Update NachoSeries database
+    if dry_run:
+        print("\n🔍 DRY RUN — no database changes will be made\n")
+
+    db = sqlite3.connect(str(NACHOSERIES_DB))
+    cursor = db.cursor()
+    now = datetime.now(tz=timezone.utc).isoformat()
+
+    updated_isfdb_id = 0
+    updated_parent = 0
+    already_up_to_date = 0
+    parent_stubs_created = 0
+    parent_stub_ids = {}  # isfdb_id -> nachoseries UUID
+
+    for name, s in found_series.items():
+        isfdb_id = str(s['series_id'])
+        series_name_norm = normalize(name)
+
+        # Look up in NachoSeries
+        cursor.execute("SELECT id, isfdb_id, parent_series_id FROM series WHERE name_normalized = ?",
+                       (series_name_norm,))
+        existing = cursor.fetchone()
+        if not existing:
+            continue  # Series not in NachoSeries (shouldn't happen with --from-db)
+
+        ns_id = existing[0]
+        ns_isfdb = existing[1]
+        ns_parent = existing[2]
+        updates = []
+
+        # Update isfdb_id if missing
+        if not ns_isfdb:
+            if not dry_run:
+                cursor.execute("UPDATE series SET isfdb_id = ?, updated_at = ? WHERE id = ?",
+                               (isfdb_id, now, ns_id))
+            updates.append(f"isfdb_id:{isfdb_id}")
+            updated_isfdb_id += 1
+
+        # Update parent if ISFDB has one and NachoSeries doesn't
+        if s['series_parent'] and not ns_parent and s['series_parent'] in parents:
+            parent = parents[s['series_parent']]
+            parent_isfdb_id = str(parent['series_id'])
+
+            # Resolve parent: find or create in NachoSeries
+            parent_ns_id = parent_stub_ids.get(parent_isfdb_id)
+            if not parent_ns_id:
+                cursor.execute("SELECT id FROM series WHERE isfdb_id = ?", (parent_isfdb_id,))
+                prow = cursor.fetchone()
+                if prow:
+                    parent_ns_id = prow[0]
+                else:
+                    pnorm = normalize(parent['series_title'])
+                    cursor.execute("SELECT id, isfdb_id FROM series WHERE name_normalized = ?", (pnorm,))
+                    prow = cursor.fetchone()
+                    if prow:
+                        parent_ns_id = prow[0]
+                        if not prow[1] and not dry_run:
+                            cursor.execute("UPDATE series SET isfdb_id = ?, updated_at = ? WHERE id = ?",
+                                           (parent_isfdb_id, now, parent_ns_id))
+                    else:
+                        # Create parent stub
+                        parent_ns_id = str(uuid.uuid4())
+                        if not dry_run:
+                            cursor.execute("""
+                                INSERT INTO series (id, name, name_normalized, total_books,
+                                    confidence, verified, isfdb_id, genre, created_at, updated_at)
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            """, (parent_ns_id, parent['series_title'], pnorm,
+                                  0, 0.5, 0, parent_isfdb_id, genre, now, now))
+                        parent_stubs_created += 1
+
+                parent_stub_ids[parent_isfdb_id] = parent_ns_id
+
+            if parent_ns_id and not ns_parent:
+                if not dry_run:
+                    cursor.execute("UPDATE series SET parent_series_id = ?, updated_at = ? WHERE id = ?",
+                                   (parent_ns_id, now, ns_id))
+                updates.append(f"parent→{parent['series_title']}")
+                updated_parent += 1
+
+        if not updates:
+            already_up_to_date += 1
+
+    if not dry_run:
+        db.commit()
+    db.close()
+
+    print(f"\n{'=' * 60}")
+    print(f"Bulk Import Complete{'  (DRY RUN)' if dry_run else ''}:")
+    print(f"  Matched in ISFDB:     {matched}/{total}")
+    print(f"  ISFDB IDs set:        {updated_isfdb_id}")
+    print(f"  Parent links set:     {updated_parent}")
+    print(f"  Parent stubs created: {parent_stubs_created}")
+    print(f"  Already up to date:   {already_up_to_date}")
+    print(f"{'=' * 60}")
+
+
+def run_import(isfdb, target_names, dry_run=False, genre=None, merge_children=False):
     """Main import orchestration — works with either ISFDBSqlite or ISFDBDump backend."""
 
     # Step 1: Find series IDs
@@ -826,6 +982,16 @@ def run_import(isfdb, target_names, dry_run=False, genre=None):
                 else:
                     print(f"     └─ {child['series_title']} (ID: {child['series_id']})")
                 all_series_ids.add(child['series_id'])
+
+    # Track direct children of target series for merging
+    merged_series_ids = set()
+    if merge_children:
+        for name, s in found_series.items():
+            target_sid = s['series_id']
+            if target_sid in sub_series:
+                for child in sub_series[target_sid]:
+                    merged_series_ids.add(child['series_id'])
+                    print(f"     🔀 Will merge '{child['series_title']}' into '{name}'")
 
     # Step 4: Find titles
     titles, title_ids = isfdb.find_titles_for_series(all_series_ids)
@@ -876,6 +1042,52 @@ def run_import(isfdb, target_names, dry_run=False, genre=None):
             return (pos, yr)
         books.sort(key=sort_key)
 
+        # Merge children's books if requested
+        if merge_children and sid in sub_series:
+            children_to_merge = [c for c in sub_series[sid] if c['series_id'] in merged_series_ids]
+            if children_to_merge:
+                # Find max position from parent books
+                max_pos = 0
+                for b in books:
+                    try:
+                        p = float(b['position']) if b['position'] is not None else 0
+                        max_pos = max(max_pos, p)
+                    except (ValueError, TypeError):
+                        pass
+
+                for child in children_to_merge:
+                    child_sid = child['series_id']
+                    child_titles = titles.get(child_sid, [])
+                    print(f"     🔀 Merging {len(child_titles)} books from '{child['series_title']}' (positions offset by {int(max_pos)})")
+
+                    for t in child_titles:
+                        tid = t['title_id']
+                        author_id = title_to_author.get(tid)
+                        author_name = author_names.get(author_id, 'Unknown') if author_id else 'Unknown'
+                        pub = title_pub_info.get(tid, {})
+
+                        # Offset position by parent's max
+                        pos = t['seriesnum']
+                        if pos is not None:
+                            try:
+                                pos = float(pos) + max_pos
+                            except (ValueError, TypeError):
+                                pass
+
+                        books.append({
+                            'title': t['title'],
+                            'position': pos,
+                            'author': author_name,
+                            'year': extract_year(t['copyright']),
+                            'isbn': pub.get('pub_isbn'),
+                            'cover_url': pub.get('pub_frontimage'),
+                            'pages': pub.get('pub_pages'),
+                            'isfdb_title_id': tid,
+                        })
+
+                # Re-sort after merge
+                books.sort(key=sort_key)
+
         entry = {
             'series_id': s['series_id'],
             'series_title': s['series_title'],
@@ -893,6 +1105,8 @@ def run_import(isfdb, target_names, dry_run=False, genre=None):
             csid = child['series_id']
             if csid in found_ids:
                 continue
+            if csid in merged_series_ids:
+                continue  # Already merged into parent series
 
             child_titles = titles.get(csid, [])
             books = []
@@ -944,7 +1158,7 @@ def run_import(isfdb, target_names, dry_run=False, genre=None):
 
 
 def main():
-    if len(sys.argv) < 3:
+    if len(sys.argv) < 2:
         print(__doc__)
         sys.exit(1)
 
@@ -955,6 +1169,12 @@ def main():
         target_names.remove('--dry-run')
 
     genre = None
+    merge_children = '--merge-children' in target_names
+    if merge_children:
+        target_names.remove('--merge-children')
+    from_db = '--from-db' in target_names
+    if from_db:
+        target_names.remove('--from-db')
     for arg in list(target_names):
         if arg.startswith('--genre='):
             genre = arg.split('=', 1)[1]
@@ -966,6 +1186,29 @@ def main():
 
     if not NACHOSERIES_DB.exists():
         print(f"Error: NachoSeries database not found: {NACHOSERIES_DB}")
+        sys.exit(1)
+
+    # --from-db: load series names from NachoSeries database
+    if from_db:
+        ns_db = sqlite3.connect(str(NACHOSERIES_DB))
+        genre_filter = ''
+        params = []
+        if genre:
+            genre_filter = 'WHERE genre = ?'
+            params = [genre]
+        rows = ns_db.execute(
+            f"SELECT name FROM series {genre_filter} ORDER BY name", params
+        ).fetchall()
+        ns_db.close()
+        target_names = [row[0] for row in rows]
+        print(f"📋 Loaded {len(target_names)} series names from NachoSeries DB")
+        if genre:
+            print(f"   Filtered by genre: {genre}")
+        if not target_names:
+            print("No series found in database. Exiting.")
+            sys.exit(0)
+    elif not target_names:
+        print(__doc__)
         sys.exit(1)
 
     # Auto-detect: SQLite DB vs raw MySQL dump
@@ -985,12 +1228,18 @@ def main():
         isfdb = ISFDBDump(dump_path)
 
     print(f"NachoSeries DB: {NACHOSERIES_DB}")
-    print(f"Target series: {', '.join(target_names)}")
+    if from_db:
+        print(f"Mode: BULK (--from-db) — {len(target_names)} series")
+    else:
+        print(f"Target series: {', '.join(target_names)}")
     if genre:
         print(f"Genre: {genre}")
 
     try:
-        run_import(isfdb, target_names, dry_run=dry_run, genre=genre)
+        if from_db:
+            run_bulk_import(isfdb, target_names, dry_run=dry_run, genre=genre)
+        else:
+            run_import(isfdb, target_names, dry_run=dry_run, genre=genre, merge_children=merge_children)
     finally:
         isfdb.close()
 

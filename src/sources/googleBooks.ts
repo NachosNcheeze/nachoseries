@@ -15,6 +15,7 @@ const USER_AGENT = 'NachoSeries/0.1.0 (Book Enrichment)';
 const FETCH_TIMEOUT = 10000; // 10 seconds
 
 import { fetchWithTimeout, withRetry } from '../utils/resilience.js';
+import { hasQuota, useQuota } from '../quotas.js';
 
 // Rate limiter (generous, but be respectful)
 let lastRequest = 0;
@@ -90,6 +91,11 @@ export async function searchBook(
   title: string,
   author?: string
 ): Promise<BookEnrichment | null> {
+  // Check daily quota before making request
+  if (!hasQuota('google-books')) {
+    return null;
+  }
+
   await rateLimit();
   
   try {
@@ -124,13 +130,16 @@ export async function searchBook(
     
     if (!response.ok) {
       if (response.status === 429) {
-        console.warn('[GoogleBooks] Rate limited, waiting 10s...');
+        console.warn('[GoogleBooks] Rate limited (429), waiting 10s...');
         await new Promise(resolve => setTimeout(resolve, 10000));
         return null;
       }
       console.error(`[GoogleBooks] API error: ${response.status}`);
       return null;
     }
+    
+    // Count this as a used request against daily quota
+    useQuota('google-books');
     
     const data = await response.json() as GoogleBooksSearchResult;
     
@@ -269,37 +278,66 @@ export async function getSeriesDescription(
   //
   // If a book description contains an explicit "ABOUT THE SERIES" section,
   // we extract and prefer that over the raw description.
+  //
+  // Order: Open Library (no daily quota) → Google Books (1,000/day) to
+  // conserve Google Books API calls for the long tail.
 
   const booksToTry = books.slice(0, maxAttempts);
   let fallbackDescription: { description: string; source: string } | null = null;
   
+  // --- Phase 1: Try Open Library first (no daily quota, 5 req/sec) ---
   for (const book of booksToTry) {
-    const enrichment = await searchBook(book.title, book.author);
-    
-    if (enrichment?.description && enrichment.description.length > 50) {
-      // Check if the description contains an explicit series description section
-      const seriesDescMatch = enrichment.description.match(
-        /(?:SERIES\s+DESCRIPTION|ABOUT\s+THE\s+SERIES|THE\s+SERIES)[:\s]*(.{50,})/is
-      );
-      if (seriesDescMatch) {
-        return {
-          description: seriesDescMatch[1].trim(),
-          source: `google-books:${enrichment.googleBooksId}`,
-        };
+    try {
+      const { searchBookDescription: olSearch } = await import('./openLibrary.js');
+      const olResult = await olSearch(book.title, book.author);
+      if (olResult && olResult.description.length > 50) {
+        // Check for explicit series description section
+        const seriesDescMatch = olResult.description.match(
+          /(?:SERIES\s+DESCRIPTION|ABOUT\s+THE\s+SERIES|THE\s+SERIES)[:\s]*(.{50,})/is
+        );
+        if (seriesDescMatch) {
+          return {
+            description: seriesDescMatch[1].trim(),
+            source: olResult.source,
+          };
+        }
+        if (!fallbackDescription) {
+          fallbackDescription = olResult;
+        }
+        break; // Got a usable description from OL, no need to try more books
       }
+    } catch {
+      // OL failed, will fall through to Google Books
+    }
+  }
 
-      // Save first usable description as fallback (book 1's description)
-      if (!fallbackDescription) {
-        fallbackDescription = {
-          description: enrichment.description,
-          source: `google-books:${enrichment.googleBooksId}`,
-        };
+  // --- Phase 2: Fall back to Google Books if OL didn't find anything ---
+  if (!fallbackDescription) {
+    for (const book of booksToTry) {
+      const enrichment = await searchBook(book.title, book.author);
+      
+      if (enrichment?.description && enrichment.description.length > 50) {
+        const seriesDescMatch = enrichment.description.match(
+          /(?:SERIES\s+DESCRIPTION|ABOUT\s+THE\s+SERIES|THE\s+SERIES)[:\s]*(.{50,})/is
+        );
+        if (seriesDescMatch) {
+          return {
+            description: seriesDescMatch[1].trim(),
+            source: `google-books:${enrichment.googleBooksId}`,
+          };
+        }
+
+        if (!fallbackDescription) {
+          fallbackDescription = {
+            description: enrichment.description,
+            source: `google-books:${enrichment.googleBooksId}`,
+          };
+        }
+        break; // Got a usable description from GB
       }
     }
   }
   
-  // Fall back to first book's description.
-  // Book 1's description gives readers the right starting context for the series.
   return fallbackDescription;
 }
 

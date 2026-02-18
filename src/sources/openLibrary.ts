@@ -12,6 +12,7 @@
 
 import { config } from '../config.js';
 import { fetchWithTimeout, withRetry } from '../utils/resilience.js';
+import { olCircuitBreaker, CircuitBreaker } from '../circuitBreaker.js';
 import type { SourceBook, SourceSeries, SourceResult } from '../types.js';
 
 const USER_AGENT = 'NachoSeries/0.1.0 (Book Enrichment; Series Indexer)';
@@ -28,6 +29,53 @@ async function rateLimit(): Promise<void> {
     await new Promise(resolve => setTimeout(resolve, MIN_INTERVAL - elapsed));
   }
   lastRequest = Date.now();
+}
+
+/**
+ * Check circuit breaker before making OL requests.
+ * If circuit is open, waits for cooldown and retries.
+ * Returns false if circuit is open (caller should skip OL).
+ */
+export function isOLAvailable(): boolean {
+  return olCircuitBreaker.allowRequest();
+}
+
+/**
+ * Wrap a fetch to OL with circuit breaker tracking.
+ * Distinguishes infra failures (5xx, timeouts) from data misses (404, empty results).
+ */
+async function olFetch(url: string, options?: { timeout?: number }): Promise<Response> {
+  if (!olCircuitBreaker.allowRequest()) {
+    throw new OLCircuitOpenError();
+  }
+
+  try {
+    const resp = await fetchWithTimeout(url, {
+      headers: { 'User-Agent': USER_AGENT },
+      timeout: options?.timeout ?? FETCH_TIMEOUT,
+    });
+
+    if (CircuitBreaker.isHttpFailure(resp.status)) {
+      olCircuitBreaker.recordFailure();
+    } else {
+      olCircuitBreaker.recordSuccess();
+    }
+
+    return resp;
+  } catch (error) {
+    if (CircuitBreaker.isInfraFailure(error)) {
+      olCircuitBreaker.recordFailure();
+    }
+    throw error;
+  }
+}
+
+/** Thrown when OL circuit breaker is open — not an infra failure, just "skip me" */
+export class OLCircuitOpenError extends Error {
+  constructor() {
+    super('Open Library circuit breaker is open');
+    this.name = 'OLCircuitOpenError';
+  }
 }
 
 interface OpenLibraryWork {
@@ -285,22 +333,7 @@ export async function searchBookDescription(
     }
     const searchUrl = `https://openlibrary.org/search.json?q=${query}&fields=key,title,author_name,first_publish_year&limit=5`;
 
-    const searchResp = await withRetry(
-      () => fetchWithTimeout(searchUrl, {
-        headers: { 'User-Agent': USER_AGENT },
-        timeout: FETCH_TIMEOUT,
-      }),
-      {
-        maxRetries: 2,
-        baseDelay: 2000,
-        retryOn: (err) => {
-          if (!(err instanceof Error)) return false;
-          const m = err.message.toLowerCase();
-          return m.includes('econnrefused') || m.includes('econnreset') ||
-                 m.includes('etimedout') || m.includes('aborted') || m.includes('fetch failed');
-        },
-      }
-    );
+    const searchResp = await olFetch(searchUrl);
 
     if (!searchResp.ok) {
       console.error(`[OpenLibrary] Search HTTP ${searchResp.status}`);
@@ -350,10 +383,7 @@ export async function searchBookDescription(
     // --- Step 2: Fetch the work for description ---
     await rateLimit();
     const workUrl = `https://openlibrary.org${bestDoc.key}.json`;
-    const workResp = await fetchWithTimeout(workUrl, {
-      headers: { 'User-Agent': USER_AGENT },
-      timeout: FETCH_TIMEOUT,
-    });
+    const workResp = await olFetch(workUrl);
 
     if (workResp.ok) {
       const work = await workResp.json() as Record<string, unknown>;
@@ -369,10 +399,7 @@ export async function searchBookDescription(
     // --- Step 3: Fetch editions for description ---
     await rateLimit();
     const editionsUrl = `https://openlibrary.org${bestDoc.key}/editions.json`;
-    const edResp = await fetchWithTimeout(editionsUrl, {
-      headers: { 'User-Agent': USER_AGENT },
-      timeout: FETCH_TIMEOUT,
-    });
+    const edResp = await olFetch(editionsUrl);
 
     if (edResp.ok) {
       const edData = await edResp.json() as { entries?: Array<Record<string, unknown>> };

@@ -26,6 +26,8 @@ import {
   getDescriptionStats,
 } from './database/db.js';
 import { fetchSeries as fetchGoodreadsSeries } from './sources/goodreads.js';
+import { initQuotaTable, getAllQuotas, getQuotaUsage, useQuota, secondsUntilReset } from './quotas.js';
+import { olCircuitBreaker } from './circuitBreaker.js';
 
 const PORT = parseInt(process.env.NACHOSERIES_PORT || '5057');
 const startedAt = new Date().toISOString();
@@ -33,7 +35,7 @@ const startedAt = new Date().toISOString();
 // CORS headers for cross-origin requests
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type',
   'Content-Type': 'application/json',
 };
@@ -319,6 +321,43 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
       return;
     }
 
+    // --- Quota API ---
+
+    // GET /api/quotas — get all quota statuses + circuit breaker state
+    if (path === '/api/quotas' && req.method === 'GET') {
+      const quotas = getAllQuotas();
+      const resetIn = secondsUntilReset();
+      const olBreaker = olCircuitBreaker.getStatus();
+      sendJSON(res, { quotas, resetInSeconds: resetIn, circuitBreaker: { openLibrary: olBreaker } });
+      return;
+    }
+
+    // POST /api/quotas/use?service=google-books&count=1 — record external usage (from NachoReads)
+    if (path === '/api/quotas/use' && req.method === 'POST') {
+      const service = url.searchParams.get('service');
+      const count = parseInt(url.searchParams.get('count') || '1');
+      if (!service) {
+        sendError(res, 'Missing query parameter: service');
+        return;
+      }
+      const allowed = useQuota(service, count);
+      const updated = getQuotaUsage(service);
+      sendJSON(res, { allowed, ...updated });
+      return;
+    }
+
+    // GET /api/quotas/check?service=google-books — check if quota available (NachoReads pre-check)
+    if (path === '/api/quotas/check' && req.method === 'GET') {
+      const service = url.searchParams.get('service');
+      if (!service) {
+        sendError(res, 'Missing query parameter: service');
+        return;
+      }
+      const quota = getQuotaUsage(service);
+      sendJSON(res, quota);
+      return;
+    }
+
     sendError(res, 'Not found', 404);
   } catch (error) {
     console.error('[API] Error:', error);
@@ -333,6 +372,7 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
 
 export function startServer(): void {
   initDatabase();
+  initQuotaTable();
   
   const server = createServer(handleRequest);
   

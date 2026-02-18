@@ -13,6 +13,9 @@ import { importGenre as importGoodreadsGenre, importAllGenres as importAllGoodre
 import { discoverSeriesFromShelves, GENRE_SHELF_MAP } from './sources/goodreadsShelves.js';
 import { searchBook, getSeriesDescription, batchEnrich } from './sources/googleBooks.js';
 import { lookupGenreForSeries } from './sources/genreLookup.js';
+import { initQuotaTable, getAllQuotas, hasQuota, secondsUntilReset, cleanOldQuotas } from './quotas.js';
+import { olCircuitBreaker } from './circuitBreaker.js';
+import { isOLAvailable, OLCircuitOpenError } from './sources/openLibrary.js';
 import { shouldFilterSeries, detectLanguage, getNonEnglishSqlPatterns } from './utils/languageFilter.js';
 import { checkFlareSolverr } from './sources/flareSolverr.js';
 import { compareSources, needsTalpaVerification } from './reconciler/matcher.js';
@@ -33,6 +36,7 @@ async function main() {
   
   // Initialize database
   initDatabase();
+  initQuotaTable();
   
   switch (command) {
     case 'status':
@@ -203,6 +207,17 @@ async function main() {
       const ebSeries = args.find(a => a.startsWith('--series='))?.split('=').slice(1).join('=');
       const ebDryRun = args.includes('--dry-run');
       await runEnrichBookDescriptions(ebLimit, ebGenre, ebDryRun, ebSeries);
+      break;
+    }
+
+    case 'auto-enrich': {
+      // Fully autonomous enrichment: series descriptions then book descriptions
+      // Respects daily quotas, OL circuit breaker, and auto-resumes
+      // Usage: auto-enrich [--genre=GENRE] [--books-only] [--series-only]
+      const aeGenre = args.find(a => a.startsWith('--genre='))?.split('=')[1];
+      const aeBooksOnly = args.includes('--books-only');
+      const aeSeriesOnly = args.includes('--series-only');
+      await runAutoEnrich({ genre: aeGenre, booksOnly: aeBooksOnly, seriesOnly: aeSeriesOnly });
       break;
     }
 
@@ -1910,28 +1925,39 @@ async function runEnrichBookDescriptions(limit = 500, genre?: string, dryRun = f
       // Use the book's own author, fall back to series author
       const author = book.author || book.series_author || undefined;
       
-      // Try Google Books first
-      const enrichment = await searchBook(book.title, author);
       let description: string | null = null;
       let descSource = 'google-books';
       
-      if (enrichment?.description && enrichment.description.length > 30) {
-        description = enrichment.description;
-      }
-      
-      // Fallback 1: try Open Library if Google Books had no description
-      if (!description) {
-        console.log(`    ↳ Google Books miss, trying Open Library...`);
-        const olResult = await searchBookDescription(book.title, author);
-        if (olResult && olResult.description.length > 30) {
-          description = olResult.description;
-          descSource = 'openlibrary';
+      // Try Open Library first (no daily quota, 5 req/sec)
+      try {
+        if (isOLAvailable()) {
+          const olResult = await searchBookDescription(book.title, author);
+          if (olResult && olResult.description.length > 30) {
+            description = olResult.description;
+            descSource = 'openlibrary';
+          }
+        }
+      } catch (e) {
+        if (e instanceof OLCircuitOpenError) {
+          // Circuit just tripped — skip OL for this book, fall through to GB
+        } else {
+          throw e;
         }
       }
       
-      // Fallback 2: try iTunes if both Google Books and Open Library missed
+      // Fallback 1: try Google Books if Open Library missed
+      if (!description && hasQuota('google-books')) {
+        console.log(`    ↳ Open Library miss, trying Google Books...`);
+        const enrichment = await searchBook(book.title, author);
+        if (enrichment?.description && enrichment.description.length > 30) {
+          description = enrichment.description;
+          descSource = 'google-books';
+        }
+      }
+      
+      // Fallback 2: try iTunes if both missed
       if (!description) {
-        console.log(`    ↳ Open Library miss, trying iTunes...`);
+        console.log(`    ↳ Google Books miss, trying iTunes...`);
         const itunesResult = await searchITunesDescription(book.title, author);
         if (itunesResult && itunesResult.description.length > 30) {
           description = itunesResult.description;
@@ -1992,6 +2018,248 @@ async function runEnrichBookDescriptions(limit = 500, genre?: string, dryRun = f
     console.log(`  Before:    ${statsBefore.withDescription}/${statsBefore.totalBooks} (${statsBefore.percentage}%)`);
     console.log(`  After:     ${statsAfter.withDescription}/${statsAfter.totalBooks} (${statsAfter.percentage}%)`);
   }
+}
+
+// =============================================================================
+// Autonomous Enrichment (auto-enrich)
+// =============================================================================
+
+interface AutoEnrichOptions {
+  genre?: string;
+  booksOnly?: boolean;
+  seriesOnly?: boolean;
+}
+
+/**
+ * Fully autonomous enrichment runner.
+ * - Runs series descriptions first, then book descriptions
+ * - Processes in batches of 200
+ * - Pauses when OL circuit breaker trips (waits for recovery)
+ * - Stops Google Books/iTunes calls when daily quota exhausted
+ * - Sleeps until midnight UTC when all quotas exhausted and OL can't help
+ * - Resumes automatically the next day
+ * - Runs until everything is enriched
+ */
+async function runAutoEnrich(options: AutoEnrichOptions) {
+  initQuotaTable();
+  cleanOldQuotas();
+
+  const BATCH_SIZE = 200;
+  const startTime = Date.now();
+  let totalSeriesEnriched = 0;
+  let totalBooksEnriched = 0;
+
+  console.log('');
+  console.log('═'.repeat(60));
+  console.log('🤖 AUTO-ENRICH — Autonomous Enrichment Mode');
+  console.log('═'.repeat(60));
+  console.log(`  Started: ${new Date().toISOString()}`);
+  if (options.genre) console.log(`  Genre filter: ${options.genre}`);
+  if (options.booksOnly) console.log(`  Mode: Books only`);
+  if (options.seriesOnly) console.log(`  Mode: Series only`);
+  console.log(`  Batch size: ${BATCH_SIZE}`);
+  console.log(`  OL circuit breaker: enabled`);
+  console.log(`  Google Books daily quota: tracked`);
+  console.log('═'.repeat(60));
+  console.log('');
+
+  // --- Phase 1: Series Descriptions ---
+  if (!options.booksOnly) {
+    console.log('📚 Phase 1: Series Descriptions');
+    console.log('─'.repeat(60));
+
+    let seriesDone = false;
+    while (!seriesDone) {
+      // Check OL availability
+      if (!isOLAvailable()) {
+        const status = olCircuitBreaker.getStatus();
+        const waitSec = Math.ceil(status.cooldownRemainingMs / 1000);
+        console.log(`⏸️  OL circuit breaker OPEN — waiting ${waitSec}s for recovery...`);
+        await sleep(status.cooldownRemainingMs + 1000);
+        continue;
+      }
+
+      try {
+        // Series enrichment uses runGoogleBooksEnrich which tries OL first then GB
+        const db = getDb();
+        let query = `SELECT COUNT(*) as cnt FROM series WHERE (description IS NULL OR description = '')`;
+        const params: (string | number)[] = [];
+        if (options.genre) {
+          query += ' AND genre = ?';
+          params.push(options.genre);
+        }
+        const remaining = (db.prepare(query).get(...params) as { cnt: number }).cnt;
+
+        if (remaining === 0) {
+          console.log('✅ All series have descriptions!');
+          seriesDone = true;
+          break;
+        }
+
+        console.log(`\n📊 ${remaining} series still need descriptions`);
+        const batchLimit = Math.min(BATCH_SIZE, remaining);
+
+        await runGoogleBooksEnrich(batchLimit, options.genre, true, false);
+        totalSeriesEnriched += batchLimit; // Approximate
+
+        // Brief pause between batches
+        await sleep(2000);
+      } catch (error) {
+        if (error instanceof OLCircuitOpenError) {
+          console.log('⏸️  OL went down mid-batch, will retry after cooldown...');
+          await sleep(30000);
+          continue;
+        }
+        console.error('❌ Series enrichment error:', error);
+        await sleep(5000);
+      }
+    }
+  }
+
+  // --- Phase 2: Book Descriptions ---
+  if (!options.seriesOnly) {
+    console.log('\n📖 Phase 2: Book Descriptions');
+    console.log('─'.repeat(60));
+
+    let booksDone = false;
+    let consecutiveEmptyBatches = 0;
+
+    while (!booksDone) {
+      // Check how many books still need descriptions
+      const statsNow = getDescriptionStats();
+      const booksRemaining = statsNow.totalBooks - statsNow.withDescription;
+
+      if (booksRemaining === 0) {
+        console.log('✅ All books have descriptions!');
+        booksDone = true;
+        break;
+      }
+
+      // Check OL availability
+      const olUp = isOLAvailable();
+      const gbAvailable = hasQuota('google-books');
+
+      if (!olUp && !gbAvailable) {
+        // Both sources down/exhausted — sleep until quota reset
+        const resetSec = secondsUntilReset();
+        const status = olCircuitBreaker.getStatus();
+        
+        if (status.state === 'OPEN') {
+          // OL is down AND Google quota exhausted — wait for OL first, it might recover
+          const waitSec = Math.ceil(status.cooldownRemainingMs / 1000);
+          console.log(`⏸️  OL circuit OPEN + Google quota exhausted — waiting ${waitSec}s for OL recovery...`);
+          await sleep(status.cooldownRemainingMs + 1000);
+          continue;
+        } else {
+          // OL returned no results for a while, Google exhausted — sleep until reset
+          console.log(`💤 All sources exhausted. Sleeping ${Math.ceil(resetSec / 60)} minutes until quota reset (${new Date(Date.now() + resetSec * 1000).toISOString()})...`);
+          printAutoEnrichProgress(startTime, totalSeriesEnriched, totalBooksEnriched, statsNow);
+          await sleep(resetSec * 1000 + 5000);
+          cleanOldQuotas();
+          console.log('\n🔄 New day — resuming enrichment');
+          consecutiveEmptyBatches = 0;
+          continue;
+        }
+      }
+
+      if (!olUp) {
+        const status = olCircuitBreaker.getStatus();
+        const waitSec = Math.ceil(status.cooldownRemainingMs / 1000);
+        console.log(`⏸️  OL circuit breaker OPEN — waiting ${waitSec}s (Google Books still available: ${gbAvailable})...`);
+        await sleep(status.cooldownRemainingMs + 1000);
+        continue;
+      }
+
+      // Run a batch
+      const batchLimit = Math.min(BATCH_SIZE, booksRemaining);
+      console.log(`\n📊 ${booksRemaining} books remaining | Google Books: ${gbAvailable ? 'available' : 'quota exhausted'}`);
+
+      const beforeStats = getDescriptionStats();
+
+      try {
+        await runEnrichBookDescriptions(batchLimit, options.genre, false);
+      } catch (error) {
+        if (error instanceof OLCircuitOpenError) {
+          console.log('⏸️  OL went down mid-batch, will retry after cooldown...');
+          await sleep(30000);
+          continue;
+        }
+        console.error('❌ Book enrichment error:', error);
+        await sleep(5000);
+        continue;
+      }
+
+      const afterStats = getDescriptionStats();
+      const batchEnriched = afterStats.withDescription - beforeStats.withDescription;
+      totalBooksEnriched += batchEnriched;
+
+      if (batchEnriched === 0) {
+        consecutiveEmptyBatches++;
+        if (consecutiveEmptyBatches >= 3) {
+          // Three consecutive batches with zero results — all remaining books are unenrichable
+          console.log(`\n⚠️  ${consecutiveEmptyBatches} consecutive empty batches — remaining ${booksRemaining} books appear unenrichable`);
+          
+          if (!gbAvailable) {
+            // Google exhausted, maybe it could help tomorrow
+            const resetSec = secondsUntilReset();
+            console.log(`💤 Sleeping until quota reset to try Google Books fallback...`);
+            await sleep(resetSec * 1000 + 5000);
+            cleanOldQuotas();
+            consecutiveEmptyBatches = 0;
+            continue;
+          }
+          
+          booksDone = true;
+          break;
+        }
+      } else {
+        consecutiveEmptyBatches = 0;
+      }
+
+      // Brief pause between batches
+      await sleep(2000);
+    }
+  }
+
+  // Final report
+  const elapsed = Date.now() - startTime;
+  const statsEnd = getDescriptionStats();
+  console.log('');
+  console.log('═'.repeat(60));
+  console.log('🤖 AUTO-ENRICH COMPLETE');
+  console.log('═'.repeat(60));
+  printAutoEnrichProgress(startTime, totalSeriesEnriched, totalBooksEnriched, statsEnd);
+  console.log(`  Total runtime: ${formatDuration(elapsed)}`);
+  console.log('═'.repeat(60));
+}
+
+function printAutoEnrichProgress(
+  startTime: number,
+  seriesEnriched: number,
+  booksEnriched: number,
+  stats: { withDescription: number; totalBooks: number; percentage: number }
+) {
+  const elapsed = Date.now() - startTime;
+  const quotas = getAllQuotas();
+  console.log(`  Runtime: ${formatDuration(elapsed)}`);
+  console.log(`  Books enriched this session: ~${booksEnriched}`);
+  console.log(`  Book coverage: ${stats.withDescription}/${stats.totalBooks} (${stats.percentage}%)`);
+  for (const [svc, q] of Object.entries(quotas)) {
+    console.log(`  ${svc} quota: ${q.used}/${q.limit} used (${q.remaining} remaining)`);
+  }
+}
+
+function formatDuration(ms: number): string {
+  const hours = Math.floor(ms / 3600000);
+  const minutes = Math.floor((ms % 3600000) / 60000);
+  const seconds = Math.floor((ms % 60000) / 1000);
+  if (hours > 0) return `${hours}h ${minutes}m ${seconds}s`;
+  if (minutes > 0) return `${minutes}m ${seconds}s`;
+  return `${seconds}s`;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 // =============================================================================
