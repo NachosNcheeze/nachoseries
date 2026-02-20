@@ -4,7 +4,10 @@
  */
 
 import { createServer, IncomingMessage, ServerResponse } from 'http';
+import { fork, ChildProcess } from 'child_process';
 import { URL } from 'url';
+import { fileURLToPath } from 'url';
+import path from 'path';
 import { 
   initDatabase, 
   closeDatabase, 
@@ -396,11 +399,62 @@ export function startServer(): void {
     console.log('  GET /api/books/description   - Look up book description by title+author');
     console.log('  GET /api/books/description-stats - Description enrichment statistics');
     console.log('');
+
+    // Auto-enrich: spawn enrichment process if AUTO_ENRICH env is set
+    if (process.env.AUTO_ENRICH === 'true' || process.env.AUTO_ENRICH === '1') {
+      spawnAutoEnrich();
+    }
   });
+
+  // Auto-enrich child process management
+  let autoEnrichChild: ChildProcess | null = null;
+
+  function spawnAutoEnrich() {
+    // Resolve the index.js path relative to this file
+    const thisDir = path.dirname(fileURLToPath(import.meta.url));
+    const indexPath = path.join(thisDir, 'index.js');
+    
+    const args = ['auto-enrich'];
+    // Pass through optional config from env
+    if (process.env.AUTO_ENRICH_MODE === 'books-only') args.push('--books-only');
+    if (process.env.AUTO_ENRICH_MODE === 'series-only') args.push('--series-only');
+    if (process.env.AUTO_ENRICH_GENRE) args.push(`--genre=${process.env.AUTO_ENRICH_GENRE}`);
+    
+    console.log(`[API] Starting auto-enrich child process: node ${indexPath} ${args.join(' ')}`);
+    
+    autoEnrichChild = fork(indexPath, args, {
+      stdio: ['ignore', 'inherit', 'inherit', 'ipc'],
+      env: { ...process.env },
+    });
+    
+    autoEnrichChild.on('exit', (code, signal) => {
+      console.log(`[API] Auto-enrich process exited (code=${code}, signal=${signal})`);
+      autoEnrichChild = null;
+
+      // Auto-restart after 60s unless it was a clean exit (code 0) or intentional kill
+      if (code !== 0 && signal !== 'SIGTERM' && signal !== 'SIGINT') {
+        console.log('[API] Auto-enrich will restart in 60 seconds...');
+        setTimeout(() => {
+          if (!autoEnrichChild) spawnAutoEnrich();
+        }, 60000);
+      }
+    });
+    
+    autoEnrichChild.on('error', (err) => {
+      console.error('[API] Auto-enrich process error:', err.message);
+      autoEnrichChild = null;
+    });
+  }
 
   // Graceful shutdown (SIGINT for terminal, SIGTERM for Docker)
   const shutdown = (signal: string) => {
     console.log(`\n[API] Shutting down (${signal})...`);
+    // Kill auto-enrich child if running
+    if (autoEnrichChild) {
+      console.log('[API] Stopping auto-enrich child process...');
+      autoEnrichChild.kill('SIGTERM');
+      autoEnrichChild = null;
+    }
     server.close(() => {
       closeDatabase();
       console.log('[API] Shutdown complete');

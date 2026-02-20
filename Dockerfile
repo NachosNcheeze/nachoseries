@@ -33,6 +33,10 @@ RUN mkdir -p /app/data
 ENV NODE_ENV=production
 ENV NACHOSERIES_DB_PATH=/app/data/nachoseries.db
 ENV NACHOSERIES_PORT=5057
+# Auto-enrich: set to 'true' to run autonomous book/series enrichment on startup
+# AUTO_ENRICH_MODE: 'books-only' or 'series-only' (default: both)
+# AUTO_ENRICH_GENRE: limit to a specific genre (e.g., 'fantasy')
+ENV AUTO_ENRICH=false
 
 # Expose API port
 EXPOSE 5057
