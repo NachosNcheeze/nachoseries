@@ -50,6 +50,7 @@ CREATE TABLE IF NOT EXISTS series_book (
   
   -- Description (enriched from Google Books)
   description     TEXT,
+  description_checked_at TEXT,   -- When we last tried to find a description
   
   -- External IDs
   openlibrary_key TEXT,

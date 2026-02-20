@@ -3,7 +3,7 @@
  * Aggregates and reconciles book series data from multiple sources
  */
 
-import { initDatabase, getStats, closeDatabase, upsertSeries, upsertSeriesBook, findSeriesByName, getSeriesNeedingVerification, storeSourceData, getDb, updateSeriesGenre, saveSourceSeries, findSeriesByIsfdbId, setParentSeries, getChildSeries, getParentSeriesList, moveBookToSeries, deleteSeriesBook, refreshSeriesBookCount, normalizeText, getBooksInSeries, updateBookDescription, getBooksNeedingDescriptions, getDescriptionStats, dedupParentBooks, findParentsWithDuplicateBooks, type SeriesRecord } from './database/db.js';
+import { initDatabase, getStats, closeDatabase, upsertSeries, upsertSeriesBook, findSeriesByName, getSeriesNeedingVerification, storeSourceData, getDb, updateSeriesGenre, saveSourceSeries, findSeriesByIsfdbId, setParentSeries, getChildSeries, getParentSeriesList, moveBookToSeries, deleteSeriesBook, refreshSeriesBookCount, normalizeText, getBooksInSeries, updateBookDescription, markBookDescriptionChecked, getBooksNeedingDescriptions, getDescriptionStats, dedupParentBooks, findParentsWithDuplicateBooks, type SeriesRecord } from './database/db.js';
 import { fetchSeries as fetchLibraryThing } from './sources/librarything.js';
 import { fetchSeries as fetchOpenLibrary, searchBookDescription } from './sources/openLibrary.js';
 import { searchBookDescription as searchITunesDescription } from './sources/itunes.js';
@@ -1921,6 +1921,20 @@ async function runEnrichBookDescriptions(limit = 500, genre?: string, dryRun = f
       console.log(`\n📚 ${book.series_name}${book.series_author ? ` — ${book.series_author}` : ''}`);
     }
     
+    // Skip books with clearly non-enrichable titles (numbered chapters, very short, etc.)
+    const titleLower = book.title.toLowerCase().trim();
+    const isNumberedChapter = /^(chapter|ch|vol|volume|part|book|episode|ep|tembbal|arc)\s*\d/i.test(book.title) 
+      || /^\d+[\s:.\-]/.test(book.title)
+      || /^[^a-zA-Z]*$/.test(book.title); // no Latin letters at all
+    const isTooShort = titleLower.replace(/[^a-z]/g, '').length < 3;
+    
+    if (isNumberedChapter || isTooShort) {
+      if (!dryRun) markBookDescriptionChecked(book.id);
+      console.log(`  ${progress} ⏭️  ${book.title} — skipped (non-enrichable title)`);
+      noResults++;
+      continue;
+    }
+    
     try {
       // Use the book's own author, fall back to series author
       const author = book.author || book.series_author || undefined;
@@ -1977,6 +1991,10 @@ async function runEnrichBookDescriptions(limit = 500, genre?: string, dryRun = f
         console.log(`  ${progress} ✅ ${book.title}${srcLabel} (${description.length} chars) — ${truncated}`);
         enriched++;
       } else {
+        // Mark as checked so we don't retry this book next batch (retried after 7 days)
+        if (!dryRun) {
+          markBookDescriptionChecked(book.id);
+        }
         console.log(`  ${progress} ⏭️  ${book.title} — no description found`);
         noResults++;
       }

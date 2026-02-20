@@ -138,6 +138,14 @@ function runMigrations(db: Database.Database): void {
     db.exec('ALTER TABLE series_book ADD COLUMN description TEXT');
     console.log('[NachoSeries] Migration complete: description column added to series_book');
   }
+
+  // Migration: Add description_checked_at column to series_book table
+  const hasCheckedAt = bookColumns.some(c => c.name === 'description_checked_at');
+  if (!hasCheckedAt) {
+    console.log('[NachoSeries] Running migration: adding description_checked_at column to series_book');
+    db.exec('ALTER TABLE series_book ADD COLUMN description_checked_at TEXT');
+    console.log('[NachoSeries] Migration complete: description_checked_at column added');
+  }
 }
 
 /**
@@ -1130,9 +1138,22 @@ export function findParentsWithDuplicateBooks(): Array<{
 export function updateBookDescription(bookId: string, description: string): void {
   const db = getDb();
   db.prepare(`
-    UPDATE series_book SET description = ?, updated_at = datetime('now')
+    UPDATE series_book SET description = ?, description_checked_at = datetime('now'), updated_at = datetime('now')
     WHERE id = ?
   `).run(description, bookId);
+}
+
+/**
+ * Mark that we attempted to find a description for a book but found nothing.
+ * This prevents re-checking the same book every batch.
+ * Books will be retried after 7 days.
+ */
+export function markBookDescriptionChecked(bookId: string): void {
+  const db = getDb();
+  db.prepare(`
+    UPDATE series_book SET description_checked_at = datetime('now')
+    WHERE id = ?
+  `).run(bookId);
 }
 
 /**
@@ -1152,6 +1173,8 @@ export function getBooksNeedingDescriptions(
     FROM series_book b
     JOIN series s ON b.series_id = s.id
     WHERE (b.description IS NULL OR b.description = '')
+      AND (b.description_checked_at IS NULL 
+           OR b.description_checked_at < datetime('now', '-7 days'))
   `;
   const params: (string | number)[] = [];
   
