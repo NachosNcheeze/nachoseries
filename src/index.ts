@@ -1879,7 +1879,7 @@ async function runGoogleBooksEnrich(limit = 100, genre?: string, doDescriptions 
  * Unlike the series-level 'enrich' command, this stores descriptions
  * on each series_book row so NachoReads can serve them instantly.
  */
-async function runEnrichBookDescriptions(limit = 500, genre?: string, dryRun = false, seriesFilter?: string) {
+async function runEnrichBookDescriptions(limit = 500, genre?: string, dryRun = false, seriesFilter?: string): Promise<{ processed: number; enriched: number; noResults: number; errors: number }> {
   console.log('📖 Book Description Enrichment');
   console.log('─'.repeat(60));
   
@@ -1898,7 +1898,7 @@ async function runEnrichBookDescriptions(limit = 500, genre?: string, dryRun = f
   
   if (books.length === 0) {
     console.log('✅ All books already have descriptions!');
-    return;
+    return { processed: 0, enriched: 0, noResults: 0, errors: 0 };
   }
   
   console.log(`Found ${books.length} books needing descriptions\n`);
@@ -2036,6 +2036,8 @@ async function runEnrichBookDescriptions(limit = 500, genre?: string, dryRun = f
     console.log(`  Before:    ${statsBefore.withDescription}/${statsBefore.totalBooks} (${statsBefore.percentage}%)`);
     console.log(`  After:     ${statsAfter.withDescription}/${statsAfter.totalBooks} (${statsAfter.percentage}%)`);
   }
+  
+  return { processed: books.length, enriched, noResults, errors };
 }
 
 // =============================================================================
@@ -2062,7 +2064,7 @@ async function runAutoEnrich(options: AutoEnrichOptions) {
   initQuotaTable();
   cleanOldQuotas();
 
-  const BATCH_SIZE = 200;
+  const BATCH_SIZE = 500;
   const startTime = Date.now();
   let totalSeriesEnriched = 0;
   let totalBooksEnriched = 0;
@@ -2140,7 +2142,6 @@ async function runAutoEnrich(options: AutoEnrichOptions) {
     console.log('─'.repeat(60));
 
     let booksDone = false;
-    let consecutiveEmptyBatches = 0;
 
     while (!booksDone) {
       // Check how many books still need descriptions
@@ -2175,7 +2176,6 @@ async function runAutoEnrich(options: AutoEnrichOptions) {
           await sleep(resetSec * 1000 + 5000);
           cleanOldQuotas();
           console.log('\n🔄 New day — resuming enrichment');
-          consecutiveEmptyBatches = 0;
           continue;
         }
       }
@@ -2190,12 +2190,11 @@ async function runAutoEnrich(options: AutoEnrichOptions) {
 
       // Run a batch
       const batchLimit = Math.min(BATCH_SIZE, booksRemaining);
-      console.log(`\n📊 ${booksRemaining} books remaining | Google Books: ${gbAvailable ? 'available' : 'quota exhausted'}`);
+      console.log(`\n📊 ${booksRemaining} books remaining (${statsNow.withDescription} enriched) | Google Books: ${gbAvailable ? 'available' : 'quota exhausted'}`);
 
-      const beforeStats = getDescriptionStats();
-
+      let result: { processed: number; enriched: number; noResults: number; errors: number };
       try {
-        await runEnrichBookDescriptions(batchLimit, options.genre, false);
+        result = await runEnrichBookDescriptions(batchLimit, options.genre, false);
       } catch (error) {
         if (error instanceof OLCircuitOpenError) {
           console.log('⏸️  OL went down mid-batch, will retry after cooldown...');
@@ -2207,31 +2206,26 @@ async function runAutoEnrich(options: AutoEnrichOptions) {
         continue;
       }
 
-      const afterStats = getDescriptionStats();
-      const batchEnriched = afterStats.withDescription - beforeStats.withDescription;
-      totalBooksEnriched += batchEnriched;
+      totalBooksEnriched += result.enriched;
 
-      if (batchEnriched === 0) {
-        consecutiveEmptyBatches++;
-        if (consecutiveEmptyBatches >= 3) {
-          // Three consecutive batches with zero results — all remaining books are unenrichable
-          console.log(`\n⚠️  ${consecutiveEmptyBatches} consecutive empty batches — remaining ${booksRemaining} books appear unenrichable`);
-          
-          if (!gbAvailable) {
-            // Google exhausted, maybe it could help tomorrow
-            const resetSec = secondsUntilReset();
-            console.log(`💤 Sleeping until quota reset to try Google Books fallback...`);
-            await sleep(resetSec * 1000 + 5000);
-            cleanOldQuotas();
-            consecutiveEmptyBatches = 0;
-            continue;
-          }
-          
-          booksDone = true;
-          break;
+      // Stop when the DB query returned fewer books than we asked for —
+      // means we've checked everything within the 7-day window
+      if (result.processed < batchLimit) {
+        console.log(`\n✅ All eligible books have been checked (${result.processed} < ${batchLimit} requested)`);
+        console.log(`   ${totalBooksEnriched} books enriched this session`);
+        
+        if (!gbAvailable) {
+          // Google was exhausted — sleep until reset, there may be more enrichable books tomorrow
+          const resetSec = secondsUntilReset();
+          console.log(`💤 Google quota exhausted — sleeping until reset to retry remaining books...`);
+          await sleep(resetSec * 1000 + 5000);
+          cleanOldQuotas();
+          console.log('\n🔄 New day — resuming enrichment');
+          continue;
         }
-      } else {
-        consecutiveEmptyBatches = 0;
+        
+        booksDone = true;
+        break;
       }
 
       // Brief pause between batches
