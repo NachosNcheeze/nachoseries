@@ -1879,6 +1879,13 @@ async function runGoogleBooksEnrich(limit = 100, genre?: string, doDescriptions 
  * Unlike the series-level 'enrich' command, this stores descriptions
  * on each series_book row so NachoReads can serve them instantly.
  */
+// IPC helper: send enrichment log entries to the parent API process (if we're a child)
+function sendEnrichLog(bookTitle: string, seriesName: string, source: string, logType: string) {
+  if (typeof process.send === 'function') {
+    process.send({ type: 'enrich-log', bookTitle, seriesName, source, logType });
+  }
+}
+
 async function runEnrichBookDescriptions(limit = 500, genre?: string, dryRun = false, seriesFilter?: string): Promise<{ processed: number; enriched: number; noResults: number; errors: number }> {
   console.log('📖 Book Description Enrichment');
   console.log('─'.repeat(60));
@@ -1931,6 +1938,7 @@ async function runEnrichBookDescriptions(limit = 500, genre?: string, dryRun = f
     if (isNumberedChapter || isTooShort) {
       if (!dryRun) markBookDescriptionChecked(book.id);
       console.log(`  ${progress} ⏭️  ${book.title} — skipped (non-enrichable title)`);
+      sendEnrichLog(book.title, book.series_name, '', 'skip');
       noResults++;
       continue;
     }
@@ -1989,6 +1997,7 @@ async function runEnrichBookDescriptions(limit = 500, genre?: string, dryRun = f
           ? description.substring(0, 77) + '...' 
           : description;
         console.log(`  ${progress} ✅ ${book.title}${srcLabel} (${description.length} chars) — ${truncated}`);
+        sendEnrichLog(book.title, book.series_name, descSource, 'enriched');
         enriched++;
       } else {
         // Mark as checked so we don't retry this book next batch (retried after 7 days)
@@ -1996,6 +2005,7 @@ async function runEnrichBookDescriptions(limit = 500, genre?: string, dryRun = f
           markBookDescriptionChecked(book.id);
         }
         console.log(`  ${progress} ⏭️  ${book.title} — no description found`);
+        sendEnrichLog(book.title, book.series_name, '', 'no-result');
         noResults++;
       }
     } catch (error) {
@@ -2008,6 +2018,7 @@ async function runEnrichBookDescriptions(limit = 500, genre?: string, dryRun = f
         continue;
       }
       console.log(`  ${progress} ❌ ${book.title}: ${msg}`);
+      sendEnrichLog(book.title, book.series_name, '', 'error');
       errors++;
     }
     

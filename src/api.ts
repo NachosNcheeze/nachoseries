@@ -104,6 +104,18 @@ function spawnAutoEnrich() {
     env: { ...process.env },
   });
   
+  autoEnrichChild.on('message', (msg: unknown) => {
+    const m = msg as Record<string, unknown>;
+    if (m && typeof m === 'object' && m.type === 'enrich-log') {
+      addEnrichmentLogEntry({
+        bookTitle: String(m.bookTitle ?? ''),
+        seriesName: String(m.seriesName ?? ''),
+        source: String(m.source ?? ''),
+        type: String(m.logType ?? ''),
+      });
+    }
+  });
+
   autoEnrichChild.on('exit', (code, signal) => {
     console.log(`[API] Auto-enrich process exited (code=${code}, signal=${signal})`);
     autoEnrichChild = null;
