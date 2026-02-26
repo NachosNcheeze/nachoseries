@@ -8,6 +8,7 @@ import { fork, ChildProcess } from 'child_process';
 import { URL } from 'url';
 import { fileURLToPath } from 'url';
 import path from 'path';
+import fs from 'fs';
 import { 
   initDatabase, 
   closeDatabase, 
@@ -34,6 +35,93 @@ import { olCircuitBreaker } from './circuitBreaker.js';
 
 const PORT = parseInt(process.env.NACHOSERIES_PORT || '5057');
 const startedAt = new Date().toISOString();
+
+// Static file serving for the frontend
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const FRONTEND_DIR = path.join(__dirname, 'frontend');
+
+const MIME_TYPES: Record<string, string> = {
+  '.html': 'text/html',
+  '.css': 'text/css',
+  '.js': 'application/javascript',
+  '.json': 'application/json',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.svg': 'image/svg+xml',
+  '.ico': 'image/x-icon',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
+  '.ttf': 'font/ttf',
+};
+
+function serveStaticFile(res: ServerResponse, filePath: string): boolean {
+  try {
+    if (!fs.existsSync(filePath)) return false;
+    const stat = fs.statSync(filePath);
+    if (!stat.isFile()) return false;
+    
+    const ext = path.extname(filePath);
+    const contentType = MIME_TYPES[ext] || 'application/octet-stream';
+    const content = fs.readFileSync(filePath);
+    
+    res.writeHead(200, {
+      'Content-Type': contentType,
+      'Content-Length': content.length,
+      'Cache-Control': ext === '.html' ? 'no-cache' : 'public, max-age=31536000, immutable',
+    });
+    res.end(content);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// In-memory enrichment log (ring buffer)
+const ENRICH_LOG_MAX = 200;
+const enrichmentLog: Array<{ timestamp: string; bookTitle: string; seriesName: string; source: string; type: string }> = [];
+
+export function addEnrichmentLogEntry(entry: { bookTitle: string; seriesName: string; source: string; type: string }) {
+  enrichmentLog.unshift({ ...entry, timestamp: new Date().toISOString() });
+  if (enrichmentLog.length > ENRICH_LOG_MAX) enrichmentLog.length = ENRICH_LOG_MAX;
+}
+
+// Auto-enrich child process management (module-level for access from handleRequest)
+let autoEnrichChild: ChildProcess | null = null;
+
+function spawnAutoEnrich() {
+  const thisDir = path.dirname(fileURLToPath(import.meta.url));
+  const indexPath = path.join(thisDir, 'index.js');
+  
+  const args = ['auto-enrich'];
+  if (process.env.AUTO_ENRICH_MODE === 'books-only') args.push('--books-only');
+  if (process.env.AUTO_ENRICH_MODE === 'series-only') args.push('--series-only');
+  if (process.env.AUTO_ENRICH_GENRE) args.push(`--genre=${process.env.AUTO_ENRICH_GENRE}`);
+  
+  console.log(`[API] Starting auto-enrich child process: node ${indexPath} ${args.join(' ')}`);
+  
+  autoEnrichChild = fork(indexPath, args, {
+    stdio: ['ignore', 'inherit', 'inherit', 'ipc'],
+    env: { ...process.env },
+  });
+  
+  autoEnrichChild.on('exit', (code, signal) => {
+    console.log(`[API] Auto-enrich process exited (code=${code}, signal=${signal})`);
+    autoEnrichChild = null;
+
+    // Auto-restart after 60s unless it was a clean exit (code 0) or intentional kill
+    if (code !== 0 && signal !== 'SIGTERM' && signal !== 'SIGINT') {
+      console.log('[API] Auto-enrich will restart in 60 seconds...');
+      setTimeout(() => {
+        if (!autoEnrichChild) spawnAutoEnrich();
+      }, 60000);
+    }
+  });
+  
+  autoEnrichChild.on('error', (err) => {
+    console.error('[API] Auto-enrich process error:', err.message);
+    autoEnrichChild = null;
+  });
+}
 
 // CORS headers for cross-origin requests
 const CORS_HEADERS = {
@@ -62,15 +150,15 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
   }
 
   const url = new URL(req.url || '/', `http://localhost:${PORT}`);
-  const path = url.pathname;
+  const urlPath = url.pathname;
   const requestStart = Date.now();
 
   // Log request (skip health checks to reduce noise)
-  const isHealthCheck = path === '/health' || path === '/api/health';
+  const isHealthCheck = urlPath === '/health' || urlPath === '/api/health';
 
   try {
     // Health check — verifies DB connectivity
-    if (path === '/health' || path === '/api/health') {
+    if (urlPath === '/health' || urlPath === '/api/health') {
       const dbHealth = checkDatabaseHealth();
       const uptimeMs = Date.now() - new Date(startedAt).getTime();
       const status = dbHealth.ok ? 'ok' : 'degraded';
@@ -86,14 +174,14 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
     }
 
     // Stats
-    if (path === '/api/stats') {
+    if (urlPath === '/api/stats') {
       const stats = getStats();
       sendJSON(res, stats);
       return;
     }
 
     // Search series by name
-    if (path === '/api/series/search') {
+    if (urlPath === '/api/series/search') {
       const query = url.searchParams.get('q');
       const limit = parseInt(url.searchParams.get('limit') || '20');
       
@@ -108,7 +196,7 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
     }
 
     // Unified search: series names + book titles
-    if (path === '/api/search') {
+    if (urlPath === '/api/search') {
       const query = url.searchParams.get('q');
       const limit = parseInt(url.searchParams.get('limit') || '20');
       
@@ -127,7 +215,7 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
     }
 
     // Get series by exact name
-    if (path === '/api/series/byName') {
+    if (urlPath === '/api/series/byName') {
       const name = url.searchParams.get('name');
       
       if (!name) {
@@ -148,7 +236,7 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
     }
 
     // On-demand lookup: check local DB first, then Goodreads, cache result
-    if (path === '/api/lookup') {
+    if (urlPath === '/api/lookup') {
       const title = url.searchParams.get('title');
       const author = url.searchParams.get('author') || undefined;
       
@@ -208,7 +296,7 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
     }
 
     // Find series for a book by title/author (local DB only, no external lookup)
-    if (path === '/api/series/for-book') {
+    if (urlPath === '/api/series/for-book') {
       const title = url.searchParams.get('title');
       const author = url.searchParams.get('author') || undefined;
       
@@ -228,7 +316,7 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
     }
 
     // Look up a book description by title+author
-    if (path === '/api/books/description') {
+    if (urlPath === '/api/books/description') {
       const title = url.searchParams.get('title');
       const author = url.searchParams.get('author') || undefined;
       
@@ -253,15 +341,15 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
     }
 
     // Description enrichment stats
-    if (path === '/api/books/description-stats') {
+    if (urlPath === '/api/books/description-stats') {
       const stats = getDescriptionStats();
       sendJSON(res, stats);
       return;
     }
 
     // Get series by ID
-    if (path.startsWith('/api/series/')) {
-      const id = path.replace('/api/series/', '');
+    if (urlPath.startsWith('/api/series/')) {
+      const id = urlPath.replace('/api/series/', '');
       
       if (!id || id === 'search' || id === 'byName') {
         sendError(res, 'Invalid series ID');
@@ -279,7 +367,7 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
     }
 
     // List all series (paginated)
-    if (path === '/api/series') {
+    if (urlPath === '/api/series') {
       const limit = parseInt(url.searchParams.get('limit') || '50');
       const offset = parseInt(url.searchParams.get('offset') || '0');
       const genre = url.searchParams.get('genre') || undefined;
@@ -300,7 +388,7 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
     // 404 for unknown routes
 
     // Get books by genre (for series browsing - returns books with series info)
-    if (path === '/api/books/genre') {
+    if (urlPath === '/api/books/genre') {
       const genre = url.searchParams.get('genre');
       const limit = parseInt(url.searchParams.get('limit') || '48');
       const offset = parseInt(url.searchParams.get('offset') || '0');
@@ -327,7 +415,7 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
     // --- Quota API ---
 
     // GET /api/quotas — get all quota statuses + circuit breaker state
-    if (path === '/api/quotas' && req.method === 'GET') {
+    if (urlPath === '/api/quotas' && req.method === 'GET') {
       const quotas = getAllQuotas();
       const resetIn = secondsUntilReset();
       const olBreaker = olCircuitBreaker.getStatus();
@@ -336,7 +424,7 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
     }
 
     // POST /api/quotas/use?service=google-books&count=1 — record external usage (from NachoReads)
-    if (path === '/api/quotas/use' && req.method === 'POST') {
+    if (urlPath === '/api/quotas/use' && req.method === 'POST') {
       const service = url.searchParams.get('service');
       const count = parseInt(url.searchParams.get('count') || '1');
       if (!service) {
@@ -350,7 +438,7 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
     }
 
     // GET /api/quotas/check?service=google-books — check if quota available (NachoReads pre-check)
-    if (path === '/api/quotas/check' && req.method === 'GET') {
+    if (urlPath === '/api/quotas/check' && req.method === 'GET') {
       const service = url.searchParams.get('service');
       if (!service) {
         sendError(res, 'Missing query parameter: service');
@@ -361,6 +449,68 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
       return;
     }
 
+    // --- Enrichment Control API ---
+
+    // GET /api/enrich/status
+    if (urlPath === '/api/enrich/status' && req.method === 'GET') {
+      sendJSON(res, {
+        running: autoEnrichChild !== null,
+        mode: process.env.AUTO_ENRICH_MODE || null,
+        genre: process.env.AUTO_ENRICH_GENRE || null,
+        pid: autoEnrichChild?.pid ?? null,
+      });
+      return;
+    }
+
+    // POST /api/enrich/start?mode=books-only&genre=fantasy
+    if (urlPath === '/api/enrich/start' && req.method === 'POST') {
+      if (autoEnrichChild) {
+        sendJSON(res, { success: false, error: 'Already running' }, 409);
+        return;
+      }
+      const reqMode = url.searchParams.get('mode');
+      const reqGenre = url.searchParams.get('genre');
+      if (reqMode) process.env.AUTO_ENRICH_MODE = reqMode;
+      else delete process.env.AUTO_ENRICH_MODE;
+      if (reqGenre) process.env.AUTO_ENRICH_GENRE = reqGenre;
+      else delete process.env.AUTO_ENRICH_GENRE;
+      spawnAutoEnrich();
+      sendJSON(res, { success: true, mode: reqMode, genre: reqGenre });
+      return;
+    }
+
+    // POST /api/enrich/stop
+    if (urlPath === '/api/enrich/stop' && req.method === 'POST') {
+      if (!autoEnrichChild) {
+        sendJSON(res, { success: false, error: 'Not running' }, 409);
+        return;
+      }
+      autoEnrichChild.kill('SIGTERM');
+      autoEnrichChild = null;
+      sendJSON(res, { success: true });
+      return;
+    }
+
+    // GET /api/enrich/log?limit=50
+    if (urlPath === '/api/enrich/log' && req.method === 'GET') {
+      const limit = parseInt(url.searchParams.get('limit') || '50');
+      sendJSON(res, { entries: enrichmentLog.slice(0, limit) });
+      return;
+    }
+
+    // --- Static file serving (frontend SPA) ---
+    
+    // Try to serve the exact file
+    if (!urlPath.startsWith('/api/')) {
+      const safePath = urlPath.replace(/\.\.\//g, '');  // prevent directory traversal
+      const filePath2 = path.join(FRONTEND_DIR, safePath);
+      if (serveStaticFile(res, filePath2)) return;
+      
+      // SPA fallback: serve index.html for any non-API, non-file route
+      const indexPath = path.join(FRONTEND_DIR, 'index.html');
+      if (serveStaticFile(res, indexPath)) return;
+    }
+
     sendError(res, 'Not found', 404);
   } catch (error) {
     console.error('[API] Error:', error);
@@ -368,7 +518,7 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
   } finally {
     if (!isHealthCheck) {
       const elapsed = Date.now() - requestStart;
-      console.log(`[API] ${req.method} ${path} — ${res.statusCode} (${elapsed}ms)`);
+      console.log(`[API] ${req.method} ${urlPath} — ${res.statusCode} (${elapsed}ms)`);
     }
   }
 }
@@ -405,46 +555,6 @@ export function startServer(): void {
       spawnAutoEnrich();
     }
   });
-
-  // Auto-enrich child process management
-  let autoEnrichChild: ChildProcess | null = null;
-
-  function spawnAutoEnrich() {
-    // Resolve the index.js path relative to this file
-    const thisDir = path.dirname(fileURLToPath(import.meta.url));
-    const indexPath = path.join(thisDir, 'index.js');
-    
-    const args = ['auto-enrich'];
-    // Pass through optional config from env
-    if (process.env.AUTO_ENRICH_MODE === 'books-only') args.push('--books-only');
-    if (process.env.AUTO_ENRICH_MODE === 'series-only') args.push('--series-only');
-    if (process.env.AUTO_ENRICH_GENRE) args.push(`--genre=${process.env.AUTO_ENRICH_GENRE}`);
-    
-    console.log(`[API] Starting auto-enrich child process: node ${indexPath} ${args.join(' ')}`);
-    
-    autoEnrichChild = fork(indexPath, args, {
-      stdio: ['ignore', 'inherit', 'inherit', 'ipc'],
-      env: { ...process.env },
-    });
-    
-    autoEnrichChild.on('exit', (code, signal) => {
-      console.log(`[API] Auto-enrich process exited (code=${code}, signal=${signal})`);
-      autoEnrichChild = null;
-
-      // Auto-restart after 60s unless it was a clean exit (code 0) or intentional kill
-      if (code !== 0 && signal !== 'SIGTERM' && signal !== 'SIGINT') {
-        console.log('[API] Auto-enrich will restart in 60 seconds...');
-        setTimeout(() => {
-          if (!autoEnrichChild) spawnAutoEnrich();
-        }, 60000);
-      }
-    });
-    
-    autoEnrichChild.on('error', (err) => {
-      console.error('[API] Auto-enrich process error:', err.message);
-      autoEnrichChild = null;
-    });
-  }
 
   // Graceful shutdown (SIGINT for terminal, SIGTERM for Docker)
   const shutdown = (signal: string) => {

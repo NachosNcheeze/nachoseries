@@ -1,5 +1,5 @@
 # NachoSeries - Series Database API Server
-# Docker container for series lookup service
+# Docker container for series lookup service + web UI
 
 FROM node:20-slim
 
@@ -8,6 +8,7 @@ WORKDIR /app
 # Install dependencies for better-sqlite3 native build
 RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
 
+# --- Backend build ---
 # Copy package files
 COPY package*.json ./
 
@@ -15,16 +16,26 @@ COPY package*.json ./
 RUN npm ci
 
 # Copy source code
-COPY . .
+COPY src/ ./src/
+COPY tsconfig.json ./
 
-# Build TypeScript
+# Build backend TypeScript
 RUN npm run build
 
 # Copy non-TS assets that tsc doesn't handle
 RUN cp src/database/schema.sql dist/database/schema.sql
 
+# --- Frontend build ---
+COPY frontend/package*.json ./frontend/
+RUN cd frontend && npm ci
+
+COPY frontend/ ./frontend/
+RUN cd frontend && npx vite build
+# Frontend is now at dist/frontend/ (Vite outputs there per vite.config.ts)
+
 # Remove dev dependencies after build
 RUN npm prune --production
+RUN rm -rf frontend/node_modules
 
 # Create data directory
 RUN mkdir -p /app/data
